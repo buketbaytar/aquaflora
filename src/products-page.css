@@ -1,0 +1,124 @@
+/* Products Page Layout */
+.products-page-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr !important;
+    gap: 3rem;
+    align-items: flex-start;
+    margin-top: 2rem;
+    margin-bottom: 5rem;
+}
+
+.products-container {
+    flex-grow: 1;
+}
+
+/* Filter Sidebar */
+.filter-sidebar {
+    position: sticky;
+    top: 120px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    min-height: 400px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+}
+
+.filter-group h3 {
+    font-size: 1.1rem;
+    margin-bottom: 1.2rem;
+    color: #00f2ff;
+    /* var(--color-cyan-glow) */
+    font-family: 'Outfit', sans-serif;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.filter-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.filter-label {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.7);
+    transition: all 0.2s;
+}
+
+.filter-label:hover {
+    color: #fff;
+    transform: translateX(5px);
+}
+
+.filter-label input[type="checkbox"] {
+    accent-color: #00f2ff;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.price-slider-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.price-slider-container input[type="range"] {
+    width: 100%;
+    accent-color: #00f2ff;
+    cursor: pointer;
+}
+
+.price-values {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+}
+
+.no-results {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 5rem;
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 16px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+/* Secondary Button Small */
+.secondary-btn.small {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
+    margin-top: 1rem;
+}
+
+@media (max-width: 1024px) {
+    .products-page-layout {
+        grid-template-columns: 240px 1fr !important;
+        gap: 1.5rem;
+    }
+}
+
+@media (max-width: 900px) {
+    .products-page-layout {
+        grid-template-columns: 1fr !important;
+    }
+
+    .filter-sidebar {
+        position: static;
+        margin-bottom: 2rem;
+    }
+}

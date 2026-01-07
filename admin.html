@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - AQUAFLORA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: #16213e;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+        }
+
+        header a {
+            color: #4cc9f0;
+            text-decoration: none;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: #4361ee;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #e63946;
+            color: white;
+        }
+
+        .btn-success {
+            background: #2a9d8f;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #16213e;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #2a2a4a;
+        }
+
+        th {
+            background: #0f3460;
+        }
+
+        .status-active {
+            color: #2a9d8f;
+        }
+
+        .status-inactive {
+            color: #e63946;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #2a2a4a;
+            border-radius: 6px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .img-preview {
+            max-width: 100px;
+            max-height: 60px;
+            border-radius: 4px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            z-index: 2000;
+        }
+
+        .toast.success {
+            background: #2a9d8f;
+        }
+
+        .toast.error {
+            background: #e63946;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🛠️ Admin Panel</h1>
+            <div>
+                <a href="/" target="_blank">Siteyi Görüntüle</a>
+                <span style="margin: 0 10px;">|</span>
+                <a href="#" onclick="logout()">Çıkış</a>
+            </div>
+        </header>
+
+        <div style="margin-bottom: 20px;">
+            <button class="btn btn-primary" onclick="openModal()">+ Yeni Ürün Ekle</button>
+        </div>
+
+        <table id="products-table">
+            <thead>
+                <tr>
+                    <th>Görsel</th>
+                    <th>İsim</th>
+                    <th>Kategori</th>
+                    <th>Fiyat</th>
+                    <th>Durum</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody id="products-list"></tbody>
+        </table>
+    </div>
+
+    <!-- Product Modal -->
+    <div class="modal" id="product-modal">
+        <div class="modal-content">
+            <h2 id="modal-title">Yeni Ürün</h2>
+            <form id="product-form">
+                <input type="hidden" id="product-id">
+                <div class="form-group">
+                    <label>Ürün Adı *</label>
+                    <input type="text" id="product-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Kategori *</label>
+                    <input type="text" id="product-category" required>
+                </div>
+                <div class="form-group">
+                    <label>Alt Kategori</label>
+                    <input type="text" id="product-subcategory">
+                </div>
+                <div class="form-group">
+                    <label>Marka</label>
+                    <input type="text" id="product-brand">
+                </div>
+                <div class="form-group">
+                    <label>Fiyat (TL) *</label>
+                    <input type="number" id="product-price" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Görsel URL</label>
+                    <input type="url" id="product-image">
+                </div>
+                <div class="form-group">
+                    <label>Video URL</label>
+                    <input type="url" id="product-video">
+                </div>
+                <div class="form-group">
+                    <label>Açıklama</label>
+                    <textarea id="product-description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="product-active" checked> Aktif
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success">Kaydet</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">İptal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let products = [];
+
+        async function loadProducts() {
+            try {
+                const res = await fetch('/api/admin/products', { credentials: 'include' });
+                if (res.status === 401) {
+                    window.location.href = '/';
+                    return;
+                }
+                if (res.status === 403) {
+                    document.body.innerHTML = '<div style="padding:50px;text-align:center;"><h1>Erişim Reddedildi</h1><p>Admin yetkisi gereklidir.</p><a href="/">Ana Sayfa</a></div>';
+                    return;
+                }
+                products = await res.json();
+                renderProducts();
+            } catch (e) {
+                showToast('Ürünler yüklenemedi', 'error');
+            }
+        }
+
+        function renderProducts() {
+            const tbody = document.getElementById('products-list');
+            tbody.innerHTML = products.map(p => `
+                <tr>
+                    <td>${p.image ? `<img src="${p.image}" class="img-preview" alt="">` : '-'}</td>
+                    <td>${p.name}</td>
+                    <td>${p.category}</td>
+                    <td>${p.price?.toLocaleString('tr-TR')} ₺</td>
+                    <td class="${p.active !== false ? 'status-active' : 'status-inactive'}">${p.active !== false ? 'Aktif' : 'Pasif'}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="editProduct('${p._id || p.id}')">Düzenle</button>
+                        <button class="btn btn-danger" onclick="deleteProduct('${p._id || p.id}')">Sil</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openModal(product = null) {
+            document.getElementById('modal-title').textContent = product ? 'Ürünü Düzenle' : 'Yeni Ürün';
+            document.getElementById('product-id').value = product?._id || product?.id || '';
+            document.getElementById('product-name').value = product?.name || '';
+            document.getElementById('product-category').value = product?.category || '';
+            document.getElementById('product-subcategory').value = product?.subCategory || '';
+            document.getElementById('product-brand').value = product?.brand || '';
+            document.getElementById('product-price').value = product?.price || '';
+            document.getElementById('product-image').value = product?.image || '';
+            document.getElementById('product-video').value = product?.video || '';
+            document.getElementById('product-description').value = product?.description || '';
+            document.getElementById('product-active').checked = product?.active !== false;
+            document.getElementById('product-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('product-modal').classList.remove('active');
+        }
+
+        function editProduct(id) {
+            const product = products.find(p => (p._id || p.id) == id);
+            if (product) openModal(product);
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('Bu ürünü silmek istediğinize emin misiniz?')) return;
+
+            try {
+                const res = await fetch(`/api/admin/products/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                if (res.ok) {
+                    showToast('Ürün silindi', 'success');
+                    loadProducts();
+                } else {
+                    showToast('Silme başarısız', 'error');
+                }
+            } catch (e) {
+                showToast('Hata oluştu', 'error');
+            }
+        }
+
+        document.getElementById('product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('product-id').value;
+            const data = {
+                name: document.getElementById('product-name').value,
+                category: document.getElementById('product-category').value,
+                subCategory: document.getElementById('product-subcategory').value,
+                brand: document.getElementById('product-brand').value,
+                price: parseFloat(document.getElementById('product-price').value),
+                image: document.getElementById('product-image').value,
+                video: document.getElementById('product-video').value,
+                description: document.getElementById('product-description').value,
+                active: document.getElementById('product-active').checked
+            };
+
+            try {
+                const url = id ? `/api/admin/products/${id}` : '/api/admin/products';
+                const method = id ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    showToast(id ? 'Ürün güncellendi' : 'Ürün oluşturuldu', 'success');
+                    closeModal();
+                    loadProducts();
+                } else {
+                    const err = await res.json();
+                    showToast(err.error || 'Hata oluştu', 'error');
+                }
+            } catch (e) {
+                showToast('Bağlantı hatası', 'error');
+            }
+        });
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+            window.location.href = '/';
+        }
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Init
+        loadProducts();
+    </script>
+</body>
+
+</html>
