@@ -62,10 +62,12 @@ const authLimiter = rateLimit({
 app.use(cors({
     origin: [
         'http://localhost:5173',
-        'https://dancing-halva-4bdea7.netlify.app',
-        process.env.FRONTEND_URL || 'http://localhost:5173'
+        'http://localhost:3000',
+        'https://dancing-halva-4bdea7.netlify.app'
     ],
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(bodyParser.json());
@@ -73,9 +75,9 @@ app.use(cookieSession({
     name: 'session',
     keys: [process.env.SESSION_SECRET || 'dev-secret-key'],
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    secure: isProduction,
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'lax' // Required for payment callbacks
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
 }));
 
 // In-memory Data Stores (Fallback)
