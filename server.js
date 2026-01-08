@@ -23,13 +23,13 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
-const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+const frontendUrl = process.env.FRONTEND_URL || 'https://dancing-halva-4bdea7.netlify.app';
 const backendUrl = process.env.BACKEND_URL || `http://localhost:${port}`;
 
 // CORS Ayarları - Production ve Local linkleri destekler
 const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:3000',
+    'https://dancing-halva-4bdea7.netlify.app',
+    'https://aquaflora-backend.onrender.com',
     process.env.FRONTEND_URL,
     process.env.CUSTOM_DOMAIN
 ].filter(Boolean);
@@ -61,8 +61,8 @@ const authLimiter = rateLimit({
 
 app.use(cors({
     origin: [
-        'http://localhost:5173',
-        'http://localhost:3000',
+        'https://dancing-halva-4bdea7.netlify.app',
+        'https://aquaflora-backend.onrender.com',
         'https://dancing-halva-4bdea7.netlify.app'
     ],
     credentials: true,
