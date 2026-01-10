@@ -1,14 +1,3 @@
-app.get('/api/debug', (req, res) => {
-    res.json({ ok: true, time: new Date().toISOString() });
-});
-
-
-
-
-
-
-
-
 
 
 import express from 'express';
@@ -28,12 +17,17 @@ import { Order } from './src/models/Order.js';
 import { Product } from './src/models/Product.js';
 import dotenv from 'dotenv';
 
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
 const app = express();
+app.get('/api/debug', (req, res) => {
+    res.json({ ok: true, time: new Date().toISOString() });
+});
+
 app.set('trust proxy', 1);
 const port = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
