@@ -1,3 +1,12 @@
+const API_BASE = 'https://aquaflora-backend.onrender.com';
+
+async function fetchProductsFromAPI() {
+  const res = await fetch(`${API_BASE}/api/products`, { cache: 'no-store' });
+  return await res.json();
+}
+
+
+
 import './style.css'
 import './products-page.css'
 import { Auth } from './utils/auth.js'
@@ -9,7 +18,13 @@ import { ProductDetail } from './components/ProductDetail.js'
 import { AIAssistant, setupAIAssistant } from './components/AIAssistant.js'
 import { CategoryPage } from './components/CategoryPage.js'
 import { DivingMap, setupMapInteractions } from './components/DivingMap.js'
-import { products, categories } from './data/products.js'
+
+
+let products = [];
+import { categories } from './data/products.js';
+
+
+
 import { seo } from './utils/seo.js'
 import { Cart } from './utils/cart.js'
 import { CartPage, setupCartInteractions } from './components/CartPage.js'
@@ -376,11 +391,17 @@ function setupCommonInteractions() {
 // --- INITIALIZATION ---
 
 // Initial render to show site immediately (even if backend is down)
-try {
-  render();
-} catch (e) {
-  console.error('Critical Render Error:', e);
-}
+// --- INITIALIZATION ---
+
+(async () => {
+  try {
+    products = await fetchProductsFromAPI();
+    render();
+  } catch (e) {
+    console.error('Ürünler yüklenemedi', e);
+    render();
+  }
+})();
 
 // Background session check (non-blocking)
 Auth.subscribe(() => {
