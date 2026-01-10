@@ -1,3 +1,16 @@
+app.get('/api/debug', (req, res) => {
+    res.json({ ok: true, time: new Date().toISOString() });
+});
+
+
+
+
+
+
+
+
+
+
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -75,6 +88,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 app.use(cookieSession({
     name: 'session',
+
     keys: [process.env.SESSION_SECRET],
     maxAge: 24 * 60 * 60 * 1000,
     secure: true,
