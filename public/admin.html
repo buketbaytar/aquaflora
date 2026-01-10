@@ -273,11 +273,14 @@
     </div>
 
     <script>
+        const API_BASE = 'https://aquaflora-backend.onrender.com';
+
         let products = [];
 
         async function loadProducts() {
             try {
-                const res = await fetch('/api/admin/products', { credentials: 'include' });
+                const res = await fetch(`${API_BASE}/api/admin/products`, { credentials: 'include' });
+
                 if (res.status === 401) {
                     window.location.href = '/';
                     return;
@@ -338,7 +341,8 @@
             if (!confirm('Bu ürünü silmek istediğinize emin misiniz?')) return;
 
             try {
-                const res = await fetch(`/api/admin/products/${id}`, {
+                const res = await fetch(`${API_BASE}/api/admin/products/${id}`, {
+
                     method: 'DELETE',
                     credentials: 'include'
                 });
@@ -370,7 +374,10 @@
             };
 
             try {
-                const url = id ? `/api/admin/products/${id}` : '/api/admin/products';
+                const url = id
+                    ? `${API_BASE}/api/admin/products/${id}`
+                    : `${API_BASE}/api/admin/products`;
+
                 const method = id ? 'PUT' : 'POST';
 
                 const res = await fetch(url, {
