@@ -21,6 +21,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 const port = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 const frontendUrl = process.env.FRONTEND_URL || 'https://dancing-halva-4bdea7.netlify.app';
@@ -28,8 +29,11 @@ const backendUrl = process.env.BACKEND_URL || `http://localhost:${port}`;
 
 // CORS Ayarları - Production ve Local linkleri destekler
 const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
     'https://dancing-halva-4bdea7.netlify.app',
-    'https://aquaflora-backend.onrender.com',
+    'https://aquaflora.onrender.com',
+    'https://aquaflora-frontend.onrender.com',
     process.env.FRONTEND_URL,
     process.env.CUSTOM_DOMAIN
 ].filter(Boolean);
@@ -60,11 +64,7 @@ const authLimiter = rateLimit({
 });
 
 app.use(cors({
-    origin: [
-        'https://dancing-halva-4bdea7.netlify.app',
-        'https://aquaflora-backend.onrender.com',
-        'https://dancing-halva-4bdea7.netlify.app'
-    ],
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -73,11 +73,11 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(cookieSession({
     name: 'session',
-    keys: [process.env.SESSION_SECRET || 'dev-secret-key'],
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    secure: process.env.NODE_ENV === 'production',
+    keys: [process.env.SESSION_SECRET],
+    maxAge: 24 * 60 * 60 * 1000,
+    secure: true,
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    sameSite: 'none'
 }));
 
 // In-memory Data Stores (Fallback)
@@ -180,7 +180,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
             const newCart = new Cart({ userId: newUser._id, items: [] });
             await newCart.save();
 
-            req.session.userId = newUser._id;
+            req.session.userId = newUser._id.toString();
             res.json({ id: newUser._id, email: newUser.email, name: newUser.name });
         } catch (e) {
             console.error('Registration Error:', e);
@@ -214,7 +214,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
             if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
-            req.session.userId = user._id;
+            req.session.userId = user._id.toString();
             res.json({ id: user._id, email: user.email, name: user.name });
         } catch (e) {
             console.error('Login Error:', e);

@@ -10,7 +10,7 @@ export const Cart = {
 
     async fetchCart() {
         try {
-            const res = await fetch(`${API_BASE_URL}/api/cart`).catch(() => ({ ok: false }));
+            const res = await fetch(`${API_BASE_URL}/api/cart`, { credentials: 'include' }).catch(() => ({ ok: false }));
             if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
                 this.items = await res.json();
                 this.notify();
@@ -30,6 +30,7 @@ export const Cart = {
             const res = await fetch(`${API_BASE_URL}/api/cart/add`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ productId: product.id })
             });
 
