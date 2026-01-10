@@ -69,6 +69,8 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 app.use(bodyParser.json());
 app.use(cookieSession({
@@ -351,7 +353,7 @@ app.get('/api/categories', (req, res) => {
 
 // Serve admin page
 app.get('/admin', isAdmin, (req, res) => {
-    res.sendFile(path.resolve('admin.html'));
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 // Admin API: List all products (including inactive)
