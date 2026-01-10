@@ -351,7 +351,7 @@ app.get('/api/categories', (req, res) => {
 
 // Serve admin page
 app.get('/admin', isAdmin, (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
+    res.sendFile(path.resolve('admin.html'));
 });
 
 // Admin API: List all products (including inactive)
