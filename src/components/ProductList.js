@@ -25,17 +25,19 @@ export function setupProductInteractions() {
 
   cards.forEach(card => {
     const video = card.querySelector('video');
-    const image = card.querySelector('img');
 
+    // Video play optional - keeping logic but removing opacity hide
     card.addEventListener('mouseenter', () => {
-      image.style.opacity = '0';
-      video.play().catch(e => console.log('Video play error:', e));
+      // image.style.opacity = '0'; // REMOVED per task
+      if (video) video.play().catch(e => { });
     });
 
     card.addEventListener('mouseleave', () => {
-      image.style.opacity = '1';
-      video.pause();
-      video.currentTime = 0;
+      // image.style.opacity = '1'; 
+      if (video) {
+        video.pause();
+        video.currentTime = 0;
+      }
     });
   });
 }

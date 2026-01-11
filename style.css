@@ -141,6 +141,8 @@ button {
 .search-bar {
     flex: 0 1 300px;
     position: relative;
+    display: block;
+    /* Ensure visible on desktop */
 }
 
 .search-bar input {
@@ -265,4 +267,58 @@ button {
         display: none;
         /* Mobile menu to be implemented */
     }
+}
+
+/* UI Improvements */
+.logout-btn {
+    border: 1px solid rgba(255, 100, 100, 0.5);
+    color: #ffcccc;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 0, 0, 0.1);
+    border-color: #ff5555;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
+}
+
+/* Dropdown visual improvements */
+.mega-menu {
+    padding: 1rem;
+    min-width: 200px;
+}
+
+.mega-menu ul {
+    list-style: none;
+    padding: 0;
+}
+
+.mega-menu li {
+    margin-bottom: 0.5rem;
+}
+
+.mega-menu a {
+    display: block;
+    padding: 5px 10px;
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.8);
+    transition: all 0.2s;
+}
+
+.mega-menu a:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    padding-left: 15px;
+    /* Slide effect */
+}
+
+/* Product Card Hover Fix */
+.product-card:hover img {
+    opacity: 1 !important;
+    /* Force visible */
+    transform: scale(1.05);
+    /* Slight zoom instead */
+}
+
+.product-card img {
+    transition: transform 0.5s ease, opacity 0.3s;
 }

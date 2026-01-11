@@ -1,5 +1,5 @@
 export function ProductDetail(product) {
-    return `
+  return `
     <div class="product-detail-page fade-in-up">
       <div class="container pdp-grid">
         <!-- Visuals -->
@@ -20,24 +20,22 @@ export function ProductDetail(product) {
           <button class="back-btn">← Geri Dön</button>
           
           <div class="pdp-header">
-            <span class="pdp-category">${product.category}</span>
+            <span class="pdp-category">${product.brand || product.category}</span>
             <h1 class="pdp-title">${product.name}</h1>
-            <div class="pdp-price text-glow">${product.price}</div>
+            <div class="pdp-price text-glow">${typeof product.price === 'number' ? product.price.toLocaleString('tr-TR') + ' ₺' : product.price}</div>
           </div>
 
           <div class="pdp-description">
-             <p>Profesyonel su altı deneyimi için tasarlandı. Son teknoloji malzemeler ve üstün ergonomi ile performansınızı zirveye taşıyın.</p>
+             <p>${product.description || 'Profesyonel su altı deneyimi için tasarlandı. Son teknoloji malzemeler ve üstün ergonomi ile performansınızı zirveye taşıyın.'}</p>
           </div>
 
+          ${product.specs ? `
           <div class="pdp-specs glass-panel">
             <h3>Teknik Özellikler</h3>
             <ul>
-              <li><strong>Malzeme:</strong> Karbon Fiber / Premium Silikon</li>
-              <li><strong>Derinlik:</strong> 100m+ Dayanıklılık</li>
-              <li><strong>Ağırlık:</strong> Ultra Hafif</li>
-              <li><strong>Garanti:</strong> 2 Yıl</li>
+              ${Object.entries(product.specs).map(([key, val]) => `<li><strong>${key}:</strong> ${val}</li>`).join('')}
             </ul>
-          </div>
+          </div>` : ''}
 
           <div class="pdp-actions">
             <button class="add-cart-btn large pulse-glow">

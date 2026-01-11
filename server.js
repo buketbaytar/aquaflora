@@ -472,7 +472,7 @@ app.get('/api/categories', async (req, res) => {
                 id: c._id,
                 title: c.name,
                 slug: c.slug,
-                sub: subCats.filter(s => s.categoryId.toString() === c._id.toString()).map(s => s.name)
+                sub: subCats.filter(s => s.categoryId.toString() === c._id.toString()).map(s => ({ name: s.name, slug: s.slug }))
             }));
             res.json(response);
         } catch (e) {

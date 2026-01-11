@@ -1,11 +1,12 @@
 export function Header(user, categories = []) {
   // Define navItems
+  // Define navItems
   const navItems = categories.map(cat => `
     <li class="nav-item group">
-      <a href="#category-${cat.id}">${cat.title}</a>
+      <a href="/urunler.html?category=${cat.id}">${cat.title}</a>
       <div class="mega-menu glass-panel">
         <ul>
-          ${cat.sub.map(sub => `<li><a href="#">${sub}</a></li>`).join('')}
+          ${cat.sub.map(sub => `<li><a href="/urunler.html?subCategory=${sub.slug}&category=${cat.id}">${sub.name}</a></li>`).join('')}
         </ul>
       </div>
     </li>
@@ -17,7 +18,7 @@ export function Header(user, categories = []) {
       <div class="user-profile">
         <span class="user-greeting">Merhaba, ${user.name}</span>
         <button class="action-btn logout-btn" title="Çıkış Yap">
-           <span class="icon">🚪</span>
+           Çıkış Yap <span class="icon">🚪</span>
         </button>
       </div>`
     : `
