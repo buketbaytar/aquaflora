@@ -1,7 +1,4 @@
-import { categories } from '../data/products.js';
-
-
-export function Header(user) {
+export function Header(user, categories = []) {
   // Define navItems
   const navItems = categories.map(cat => `
     <li class="nav-item group">

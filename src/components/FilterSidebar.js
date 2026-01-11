@@ -1,8 +1,6 @@
-import { products, categories } from '../data/products.js';
-
-export function FilterSidebar() {
+export function FilterSidebar(categories = [], products = []) {
     // Extract unique brands
-    const brands = [...new Set(products.map(p => p.brand))];
+    const brands = [...new Set(products.map(p => p.brand).filter(Boolean))];
 
     return `
     <aside class="filter-sidebar glass-panel">

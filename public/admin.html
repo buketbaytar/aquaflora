@@ -33,6 +33,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         header h1 {
@@ -42,6 +44,38 @@
         header a {
             color: #4cc9f0;
             text-decoration: none;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .nav-tab {
+            padding: 10px 20px;
+            background: #16213e;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 1rem;
+            white-space: nowrap;
+        }
+
+        .nav-tab.active {
+            background: #4361ee;
+            color: white;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
         }
 
         .btn {
@@ -76,12 +110,17 @@
             opacity: 0.9;
         }
 
+        .table-responsive {
+            overflow-x: auto;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
             background: #16213e;
             border-radius: 8px;
             overflow: hidden;
+            min-width: 600px;
         }
 
         th,
@@ -103,6 +142,15 @@
             color: #e63946;
         }
 
+        .featured-badge {
+            background: #f72585;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 5px;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -114,6 +162,7 @@
             z-index: 1000;
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
 
         .modal.active {
@@ -124,7 +173,7 @@
             background: #16213e;
             padding: 30px;
             border-radius: 12px;
-            width: 90%;
+            width: 100%;
             max-width: 500px;
             max-height: 90vh;
             overflow-y: auto;
@@ -166,9 +215,10 @@
         }
 
         .img-preview {
-            max-width: 100px;
-            max-height: 60px;
+            max-width: 80px;
+            max-height: 50px;
             border-radius: 4px;
+            object-fit: cover;
         }
 
         .toast {
@@ -202,46 +252,125 @@
             </div>
         </header>
 
-        <div style="margin-bottom: 20px;">
-            <button class="btn btn-primary" onclick="openModal()">+ Yeni Ürün Ekle</button>
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('products')">Ürünler</button>
+            <button class="nav-tab" onclick="switchTab('categories')">Kategoriler</button>
+            <button class="nav-tab" onclick="switchTab('subcategories')">Alt Kategoriler</button>
+            <button class="nav-tab" onclick="switchTab('brands')">Markalar</button>
         </div>
 
-        <table id="products-table">
-            <thead>
-                <tr>
-                    <th>Görsel</th>
-                    <th>İsim</th>
-                    <th>Kategori</th>
-                    <th>Fiyat</th>
-                    <th>Durum</th>
-                    <th>İşlemler</th>
-                </tr>
-            </thead>
-            <tbody id="products-list"></tbody>
-        </table>
+        <!-- PRODUCTS SECTION -->
+        <div id="section-products" class="section active">
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="openProductModal()">+ Yeni Ürün Ekle</button>
+            </div>
+            <div class="table-responsive">
+                <table id="products-table">
+                    <thead>
+                        <tr>
+                            <th>Görsel</th>
+                            <th>İsim</th>
+                            <th>Kategori</th>
+                            <th>Marka</th>
+                            <th>Fiyat</th>
+                            <th>Durum</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-list"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- CATEGORIES SECTION -->
+        <div id="section-categories" class="section">
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="openCategoryModal()">+ Yeni Kategori Ekle</button>
+            </div>
+            <div class="table-responsive">
+                <table id="categories-table">
+                    <thead>
+                        <tr>
+                            <th>İsim</th>
+                            <th>Slug</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categories-list"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SUBCATEGORIES SECTION -->
+        <div id="section-subcategories" class="section">
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="openSubCategoryModal()">+ Yeni Alt Kategori Ekle</button>
+            </div>
+            <div class="table-responsive">
+                <table id="subcategories-table">
+                    <thead>
+                        <tr>
+                            <th>İsim</th>
+                            <th>Ana Kategori</th>
+                            <th>Slug</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subcategories-list"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- BRANDS SECTION -->
+        <div id="section-brands" class="section">
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="openBrandModal()">+ Yeni Marka Ekle</button>
+            </div>
+            <div class="table-responsive">
+                <table id="brands-table">
+                    <thead>
+                        <tr>
+                            <th>Logo</th>
+                            <th>İsim</th>
+                            <th>Slug</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="brands-list"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <!-- Product Modal -->
     <div class="modal" id="product-modal">
         <div class="modal-content">
-            <h2 id="modal-title">Yeni Ürün</h2>
+            <h2 id="product-modal-title">Yeni Ürün</h2>
             <form id="product-form">
                 <input type="hidden" id="product-id">
                 <div class="form-group">
                     <label>Ürün Adı *</label>
                     <input type="text" id="product-name" required>
                 </div>
+                <!-- Dynamic Category Select -->
                 <div class="form-group">
                     <label>Kategori *</label>
-                    <input type="text" id="product-category" required>
+                    <select id="product-categoryId" required onchange="onProductCategoryChange()">
+                        <option value="">Seçiniz...</option>
+                    </select>
                 </div>
+                <!-- Dynamic SubCategory Select -->
                 <div class="form-group">
                     <label>Alt Kategori</label>
-                    <input type="text" id="product-subcategory">
+                    <select id="product-subCategoryId">
+                        <option value="">Seçiniz...</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label>Marka</label>
-                    <input type="text" id="product-brand">
+                    <label>Marka *</label>
+                    <select id="product-brandId" required>
+                        <option value="">Seçiniz...</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Fiyat (TL) *</label>
@@ -259,50 +388,179 @@
                     <label>Açıklama</label>
                     <textarea id="product-description"></textarea>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="display:flex; gap:20px;">
                     <label>
                         <input type="checkbox" id="product-active" checked> Aktif
+                    </label>
+                    <label>
+                        <input type="checkbox" id="product-featured"> ⭐ Öne Çıkan
                     </label>
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn btn-success">Kaydet</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">İptal</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('product-modal')">İptal</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- Category Modal -->
+    <div class="modal" id="category-modal">
+        <div class="modal-content">
+            <h2 id="category-modal-title">Yeni Kategori</h2>
+            <form id="category-form">
+                <input type="hidden" id="category-id">
+                <div class="form-group">
+                    <label>Kategori Adı *</label>
+                    <input type="text" id="category-name" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success">Kaydet</button>
+                    <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('category-modal')">İptal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SubCategory Modal -->
+    <div class="modal" id="subcategory-modal">
+        <div class="modal-content">
+            <h2 id="subcategory-modal-title">Yeni Alt Kategori</h2>
+            <form id="subcategory-form">
+                <input type="hidden" id="subcategory-id">
+                <div class="form-group">
+                    <label>Ana Kategori *</label>
+                    <select id="subcategory-categoryId" required>
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Alt Kategori Adı *</label>
+                    <input type="text" id="subcategory-name" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success">Kaydet</button>
+                    <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('subcategory-modal')">İptal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Brand Modal -->
+    <div class="modal" id="brand-modal">
+        <div class="modal-content">
+            <h2 id="brand-modal-title">Yeni Marka</h2>
+            <form id="brand-form">
+                <input type="hidden" id="brand-id">
+                <div class="form-group">
+                    <label>Marka Adı *</label>
+                    <input type="text" id="brand-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Logo URL</label>
+                    <input type="url" id="brand-logo">
+                </div>
+                <div class="form-group">
+                    <label>Açıklama</label>
+                    <textarea id="brand-description"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success">Kaydet</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('brand-modal')">İptal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
     <script>
-        const API_BASE = 'https://aquaflora-backend.onrender.com';
+        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '' : 'https://aquaflora-backend.onrender.com';
 
         let products = [];
+        let categories = [];
+        let subcategories = [];
+        let brands = [];
 
-        async function loadProducts() {
-            try {
-                const res = await fetch(`${API_BASE}/api/admin/products`, { credentials: 'include' });
+        // --- Tabs ---
+        function switchTab(tab) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
 
-                if (res.status === 401) {
-                    window.location.href = '/';
-                    return;
-                }
-                if (res.status === 403) {
-                    document.body.innerHTML = '<div style="padding:50px;text-align:center;"><h1>Erişim Reddedildi</h1><p>Admin yetkisi gereklidir.</p><a href="/">Ana Sayfa</a></div>';
-                    return;
-                }
-                products = await res.json();
-                renderProducts();
-            } catch (e) {
-                showToast('Ürünler yüklenemedi', 'error');
+            document.querySelector(`button[onclick="switchTab('${tab}')"]`).classList.add('active');
+            document.getElementById(`section-${tab}`).classList.add('active');
+
+            if (tab === 'products') loadProducts();
+            if (tab === 'categories') loadCategories();
+            if (tab === 'subcategories') loadSubCategories();
+            if (tab === 'brands') loadBrands();
+        }
+
+        // --- Initial Load ---
+        async function init() {
+            // Load cats & subs & brands first for dropdowns
+            await Promise.all([loadCategories(), loadSubCategories(), loadBrands()]);
+            loadProducts();
+            populateCategoryDropdowns();
+            populateBrandDropdown();
+        }
+
+        // --- Data Fetching ---
+
+        async function fetchAPI(endpoint, options = {}) {
+            options.credentials = 'include';
+            const res = await fetch(`${API_BASE}${endpoint}`, options);
+            if (res.status === 401) { window.location.href = '/'; return null; }
+            if (res.status === 403) { alert('Yetkisiz işlem'); return null; }
+            return res;
+        }
+
+        async function loadCategories() {
+            const res = await fetchAPI('/api/admin/categories');
+            if (res && res.ok) {
+                categories = await res.json();
+                renderCategories();
             }
         }
+
+        async function loadSubCategories() {
+            const res = await fetchAPI('/api/admin/subcategories');
+            if (res && res.ok) {
+                subcategories = await res.json();
+                renderSubCategories();
+            }
+        }
+
+        async function loadBrands() {
+            const res = await fetchAPI('/api/admin/brands');
+            if (res && res.ok) {
+                brands = await res.json();
+                renderBrands();
+            }
+        }
+
+        async function loadProducts() {
+            const res = await fetchAPI('/api/admin/products');
+            if (res && res.ok) {
+                products = await res.json();
+                renderProducts();
+            }
+        }
+
+        // --- Rendering ---
 
         function renderProducts() {
             const tbody = document.getElementById('products-list');
             tbody.innerHTML = products.map(p => `
                 <tr>
                     <td>${p.image ? `<img src="${p.image}" class="img-preview" alt="">` : '-'}</td>
-                    <td>${p.name}</td>
-                    <td>${p.category}</td>
+                    <td>
+                        ${p.name}
+                        ${p.isFeatured ? '<span class="featured-badge">Öne Çıkan</span>' : ''}
+                    </td>
+                    <td>${p.categoryId?.name || p.category}</td>
+                    <td>${p.brandId?.name || p.brand || '-'}</td>
                     <td>${p.price?.toLocaleString('tr-TR')} ₺</td>
                     <td class="${p.active !== false ? 'status-active' : 'status-inactive'}">${p.active !== false ? 'Aktif' : 'Pasif'}</td>
                     <td>
@@ -313,92 +571,325 @@
             `).join('');
         }
 
-        function openModal(product = null) {
-            document.getElementById('modal-title').textContent = product ? 'Ürünü Düzenle' : 'Yeni Ürün';
+        function renderCategories() {
+            const tbody = document.getElementById('categories-list');
+            tbody.innerHTML = categories.map(c => `
+                <tr>
+                    <td>${c.name}</td>
+                    <td>${c.slug}</td>
+                     <td>
+                        <button class="btn btn-primary" onclick="editCategory('${c._id}')">Düzenle</button>
+                        <button class="btn btn-danger" onclick="deleteCategory('${c._id}')">Sil</button>
+                    </td>
+                </tr>
+             `).join('');
+        }
+
+        function renderSubCategories() {
+            const tbody = document.getElementById('subcategories-list');
+            tbody.innerHTML = subcategories.map(s => `
+                <tr>
+                    <td>${s.name}</td>
+                    <td>${s.categoryId?.name || '?'}</td>
+                    <td>${s.slug}</td>
+                     <td>
+                        <button class="btn btn-primary" onclick="editSubCategory('${s._id}')">Düzenle</button>
+                        <button class="btn btn-danger" onclick="deleteSubCategory('${s._id}')">Sil</button>
+                    </td>
+                </tr>
+             `).join('');
+        }
+
+        function renderBrands() {
+            const tbody = document.getElementById('brands-list');
+            tbody.innerHTML = brands.map(b => `
+                <tr>
+                    <td>${b.logo ? `<img src="${b.logo}" class="img-preview" alt="">` : '-'}</td>
+                    <td>${b.name}</td>
+                    <td>${b.slug}</td>
+                     <td>
+                        <button class="btn btn-primary" onclick="editBrand('${b._id}')">Düzenle</button>
+                        <button class="btn btn-danger" onclick="deleteBrand('${b._id}')">Sil</button>
+                    </td>
+                </tr>
+             `).join('');
+        }
+
+        function populateCategoryDropdowns() {
+            // Product Modal Category Dropdown
+            const pCatSelect = document.getElementById('product-categoryId');
+            pCatSelect.innerHTML = '<option value="">Seçiniz...</option>' +
+                categories.map(c => `<option value="${c._id}">${c.name}</option>`).join('');
+
+            // SubCategory Modal Category Dropdown (for creating new sub)
+            const sCatSelect = document.getElementById('subcategory-categoryId');
+            sCatSelect.innerHTML = '<option value="">Seçiniz...</option>' +
+                categories.map(c => `<option value="${c._id}">${c.name}</option>`).join('');
+        }
+
+        function populateBrandDropdown() {
+            const bSelect = document.getElementById('product-brandId');
+            bSelect.innerHTML = '<option value="">Seçiniz...</option>' +
+                brands.map(b => `<option value="${b._id}">${b.name}</option>`).join('');
+        }
+
+        // --- Product Logic ---
+        function openProductModal(product = null) {
+            populateCategoryDropdowns(); // Ensure fresh
+            populateBrandDropdown(); // Ensure fresh brands
+
+            document.getElementById('product-modal-title').textContent = product ? 'Ürünü Düzenle' : 'Yeni Ürün';
             document.getElementById('product-id').value = product?._id || product?.id || '';
             document.getElementById('product-name').value = product?.name || '';
-            document.getElementById('product-category').value = product?.category || '';
-            document.getElementById('product-subcategory').value = product?.subCategory || '';
-            document.getElementById('product-brand').value = product?.brand || '';
+            document.getElementById('product-brandId').value = product?.brandId?._id || product?.brandId || '';
             document.getElementById('product-price').value = product?.price || '';
             document.getElementById('product-image').value = product?.image || '';
             document.getElementById('product-video').value = product?.video || '';
             document.getElementById('product-description').value = product?.description || '';
             document.getElementById('product-active').checked = product?.active !== false;
+            document.getElementById('product-featured').checked = !!product?.isFeatured;
+
+            // Set Category
+            const catId = product?.categoryId?._id || product?.categoryId || '';
+            document.getElementById('product-categoryId').value = catId;
+
+            // Trigger Change to populate subcategories
+            onProductCategoryChange(product?.subCategoryId?._id || product?.subCategoryId);
+
             document.getElementById('product-modal').classList.add('active');
         }
 
-        function closeModal() {
-            document.getElementById('product-modal').classList.remove('active');
+        function onProductCategoryChange(selectedSubId = null) {
+            const catId = document.getElementById('product-categoryId').value;
+            const subSelect = document.getElementById('product-subCategoryId');
+
+            if (!catId) {
+                subSelect.innerHTML = '<option value="">Önce kategori seçiniz</option>';
+                return;
+            }
+
+            const associatedSubs = subcategories.filter(s => {
+                const sCatId = typeof s.categoryId === 'string' ? s.categoryId : s.categoryId._id;
+                return sCatId === catId;
+            });
+
+            subSelect.innerHTML = '<option value="">Seçiniz...</option>' +
+                associatedSubs.map(s => `<option value="${s._id}">${s.name}</option>`).join('');
+
+            if (selectedSubId) subSelect.value = selectedSubId;
         }
 
-        function editProduct(id) {
+        async function editProduct(id) {
             const product = products.find(p => (p._id || p.id) == id);
-            if (product) openModal(product);
+            if (product) openProductModal(product);
         }
 
         async function deleteProduct(id) {
             if (!confirm('Bu ürünü silmek istediğinize emin misiniz?')) return;
-
-            try {
-                const res = await fetch(`${API_BASE}/api/admin/products/${id}`, {
-
-                    method: 'DELETE',
-                    credentials: 'include'
-                });
-                if (res.ok) {
-                    showToast('Ürün silindi', 'success');
-                    loadProducts();
-                } else {
-                    showToast('Silme başarısız', 'error');
-                }
-            } catch (e) {
-                showToast('Hata oluştu', 'error');
-            }
+            const res = await fetchAPI(`/api/admin/products/${id}`, { method: 'DELETE' });
+            if (res && res.ok) { showToast('Ürün silindi', 'success'); loadProducts(); }
         }
 
         document.getElementById('product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const id = document.getElementById('product-id').value;
             const data = {
                 name: document.getElementById('product-name').value,
-                category: document.getElementById('product-category').value,
-                subCategory: document.getElementById('product-subcategory').value,
-                brand: document.getElementById('product-brand').value,
+                brandId: document.getElementById('product-brandId').value,
                 price: parseFloat(document.getElementById('product-price').value),
                 image: document.getElementById('product-image').value,
                 video: document.getElementById('product-video').value,
                 description: document.getElementById('product-description').value,
-                active: document.getElementById('product-active').checked
+                active: document.getElementById('product-active').checked,
+                isFeatured: document.getElementById('product-featured').checked,
+                categoryId: document.getElementById('product-categoryId').value,
+                subCategoryId: document.getElementById('product-subCategoryId').value || null
             };
 
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/admin/products/${id}` : '/api/admin/products';
+
             try {
-                const url = id
-                    ? `${API_BASE}/api/admin/products/${id}`
-                    : `${API_BASE}/api/admin/products`;
-
-                const method = id ? 'PUT' : 'POST';
-
-                const res = await fetch(url, {
+                const res = await fetchAPI(url, {
                     method,
                     headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
                     body: JSON.stringify(data)
                 });
-
-                if (res.ok) {
-                    showToast(id ? 'Ürün güncellendi' : 'Ürün oluşturuldu', 'success');
-                    closeModal();
+                if (res && res.ok) {
+                    showToast('İşlem başarılı', 'success');
+                    closeModal('product-modal');
                     loadProducts();
                 } else {
                     const err = await res.json();
-                    showToast(err.error || 'Hata oluştu', 'error');
+                    showToast(err.error || 'Hata', 'error');
                 }
-            } catch (e) {
-                showToast('Bağlantı hatası', 'error');
-            }
+            } catch (e) { showToast('Hata', 'error'); }
         });
+
+
+        // --- Category Logic ---
+        function openCategoryModal(cat = null) {
+            document.getElementById('category-modal-title').textContent = cat ? 'Kategori Düzenle' : 'Yeni Kategori';
+            document.getElementById('category-id').value = cat?._id || '';
+            document.getElementById('category-name').value = cat?.name || '';
+            document.getElementById('category-modal').classList.add('active');
+        }
+
+        function editCategory(id) {
+            const c = categories.find(cat => cat._id === id);
+            if (c) openCategoryModal(c);
+        }
+
+        async function deleteCategory(id) {
+            if (!confirm('Bu kategoriyi silmek istediğinize emin misiniz?')) return;
+            const res = await fetchAPI(`/api/admin/categories/${id}`, { method: 'DELETE' });
+            if (res && res.ok) {
+                showToast('Kategori silindi', 'success');
+                loadCategories();
+                loadSubCategories();
+                populateCategoryDropdowns();
+            }
+        }
+
+        document.getElementById('category-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('category-id').value;
+            const name = document.getElementById('category-name').value;
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/admin/categories/${id}` : '/api/admin/categories';
+
+            try {
+                const res = await fetchAPI(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                if (res && res.ok) {
+                    showToast('Kategori kaydedildi', 'success');
+                    closeModal('category-modal');
+                    loadCategories();
+                    populateCategoryDropdowns();
+                } else {
+                    showToast('Hata', 'error');
+                }
+            } catch (e) { showToast('Bağlantı Hatası', 'error'); }
+        });
+
+
+        // --- SubCategory Logic ---
+        function openSubCategoryModal(sub = null) {
+            document.getElementById('subcategory-modal-title').textContent = sub ? 'Alt Kategori Düzenle' : 'Yeni Alt Kategori';
+            document.getElementById('subcategory-id').value = sub?._id || '';
+            document.getElementById('subcategory-name').value = sub?.name || '';
+            // Ensure this dropdown is populated too
+            const sCatSelect = document.getElementById('subcategory-categoryId');
+            sCatSelect.innerHTML = '<option value="">Seçiniz...</option>' +
+                categories.map(c => `<option value="${c._id}">${c.name}</option>`).join('');
+
+            const catVal = sub?.categoryId?._id || sub?.categoryId || '';
+            document.getElementById('subcategory-categoryId').value = catVal;
+
+            document.getElementById('subcategory-modal').classList.add('active');
+        }
+
+        function editSubCategory(id) {
+            const s = subcategories.find(sub => sub._id === id);
+            if (s) openSubCategoryModal(s);
+        }
+
+        async function deleteSubCategory(id) {
+            if (!confirm('Bu alt kategoriyi silmek istediğinize emin misiniz?')) return;
+            const res = await fetchAPI(`/api/admin/subcategories/${id}`, { method: 'DELETE' });
+            if (res && res.ok) { showToast('Alt kategori silindi', 'success'); loadSubCategories(); }
+        }
+
+        document.getElementById('subcategory-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('subcategory-id').value;
+            const name = document.getElementById('subcategory-name').value;
+            const categoryId = document.getElementById('subcategory-categoryId').value;
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/admin/subcategories/${id}` : '/api/admin/subcategories';
+
+            try {
+                const res = await fetchAPI(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, categoryId })
+                });
+                if (res && res.ok) {
+                    showToast('Alt Kategori kaydedildi', 'success');
+                    closeModal('subcategory-modal');
+                    loadSubCategories();
+                } else {
+                    showToast('Hata', 'error');
+                }
+            } catch (e) { showToast('Bağlantı Hatası', 'error'); }
+        });
+
+        // --- Brand Logic ---
+        function openBrandModal(brand = null) {
+            document.getElementById('brand-modal-title').textContent = brand ? 'Markayı Düzenle' : 'Yeni Marka';
+            document.getElementById('brand-id').value = brand?._id || '';
+            document.getElementById('brand-name').value = brand?.name || '';
+            document.getElementById('brand-logo').value = brand?.logo || '';
+            document.getElementById('brand-description').value = brand?.description || '';
+            document.getElementById('brand-modal').classList.add('active');
+        }
+
+        function editBrand(id) {
+            const b = brands.find(brand => brand._id === id);
+            if (b) openBrandModal(b);
+        }
+
+        async function deleteBrand(id) {
+            if (!confirm('Bu markayı silmek istediğinize emin misiniz?')) return;
+            const res = await fetchAPI(`/api/admin/brands/${id}`, { method: 'DELETE' });
+            if (res && res.ok) {
+                showToast('Marka silindi', 'success');
+                loadBrands();
+                populateBrandDropdown();
+            }
+        }
+
+        document.getElementById('brand-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('brand-id').value;
+            const data = {
+                name: document.getElementById('brand-name').value,
+                logo: document.getElementById('brand-logo').value,
+                description: document.getElementById('brand-description').value
+            };
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/admin/brands/${id}` : '/api/admin/brands';
+
+            try {
+                const res = await fetchAPI(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res && res.ok) {
+                    showToast('Marka kaydedildi', 'success');
+                    closeModal('brand-modal');
+                    loadBrands();
+                    populateBrandDropdown();
+                } else {
+                    const err = await res.json();
+                    showToast(err.error || 'Hata', 'error');
+                }
+            } catch (e) { showToast('Bağlantı Hatası', 'error'); }
+        });
+
+
+
+        // --- Common ---
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
 
         async function logout() {
             await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
@@ -413,8 +904,7 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // Init
-        loadProducts();
+        init();
     </script>
 </body>
 

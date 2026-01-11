@@ -2,9 +2,17 @@ import mongoose from 'mongoose';
 
 const productSchema = new mongoose.Schema({
     name: { type: String, required: true },
+    // Deprecated string fields kept for compatibility
     category: { type: String, required: true },
     subCategory: { type: String },
-    brand: { type: String },
+
+    // New Relational Fields
+    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+    subCategoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'SubCategory' },
+    brandId: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand', required: true },
+    isFeatured: { type: Boolean, default: false },
+
+    brand: { type: String }, // Legacy/Display fallback
     price: { type: Number, required: true },
     image: { type: String },
     video: { type: String },

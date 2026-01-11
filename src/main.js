@@ -1,4 +1,4 @@
-const API_BASE = 'https://aquaflora-backend.onrender.com';
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '' : 'https://aquaflora-backend.onrender.com';
 
 async function fetchProductsFromAPI() {
   const res = await fetch(`${API_BASE}/api/products`, { cache: 'no-store' });
@@ -21,8 +21,8 @@ import { DivingMap, setupMapInteractions } from './components/DivingMap.js'
 
 
 let products = [];
-import { categories } from './data/products.js';
-
+let categories = [];
+// import { categories } from './data/products.js'; // REMOVED STATIC IMPORT
 
 
 import { seo } from './utils/seo.js'
@@ -112,7 +112,7 @@ Cart.subscribe((items) => {
 });
 
 function render() {
-  const commonUI = Header(Auth.user) + AIAssistant();
+  const commonUI = Header(Auth.user, categories) + AIAssistant();
   const footerUI = Footer();
 
   if (window.location.pathname.includes('urunler.html')) {
@@ -122,7 +122,7 @@ function render() {
         ${commonUI}
         <div id="main-content" class="container" style="margin-top: 120px;">
           <div class="products-page-layout">
-            ${FilterSidebar()}
+            ${FilterSidebar(categories, products)}
             <div class="products-container">
               ${ProductList(filtered)}
             </div>
@@ -132,8 +132,10 @@ function render() {
       `;
       setupCommonInteractions();
 
+      // Pass handlers with closure to use latest 'products'
       setupFilterInteractions((filterData) => {
         const newFiltered = products.filter(p => {
+          // Compatibility: p.category is always present (string) even if originating from DB relations due to server transform
           const matchesCategory = filterData.categories.length === 0 || filterData.categories.includes(p.category);
           const matchesBrand = filterData.brands.length === 0 || filterData.brands.includes(p.brand);
 
@@ -146,14 +148,10 @@ function render() {
           return matchesCategory && matchesBrand && matchesPrice;
         });
 
-        // Re-render only the product list part if possible, but for simplicity re-render page
-        // or just the container. Let's do container to maintain sidebar state would be better,
-        // but setupFilterInteractions is designed for a full refresh or a targeted one.
-        // Let's target the products container.
         const container = document.querySelector('.products-container');
         if (container) {
           container.innerHTML = ProductList(newFiltered);
-          setupProductInteractions(); // Re-attach hover effects
+          setupProductInteractions();
         }
       });
     };
@@ -162,11 +160,21 @@ function render() {
   }
   else if (currentRoute.page === 'home') {
     seo.setDefaults();
+
+    // Featured Products Logic
+    const featuredProducts = products.filter(p => p.isFeatured === true);
+    // If no featured products, maybe show 4 random ones or just none. Requirement says: "Featured products appear on homepage"
+    // Let's fallback to first 4 if none marked, or just show them.
+    const displayProducts = featuredProducts.length > 0 ? featuredProducts : products.slice(0, 4);
+
+    // Modify ProductList to change title if needed or wrap it
+    // ProductList component has hardcoded title "Öne Çıkan Ekipmanlar" which fits perfectly.
+
     app.innerHTML = `
       ${commonUI}
       <div id="main-content">
           ${Hero()}
-          ${ProductList()}
+          ${ProductList(displayProducts)}
           ${DivingMap()}
       </div>
       ${footerUI}
@@ -175,14 +183,19 @@ function render() {
   }
   else if (currentRoute.page === 'category') {
     const catId = currentRoute.params.id;
-    const catTitle = categories.find(c => c.id === catId)?.title || 'Kategori';
+    // Categories now have mongodb _id, but we might be using string IDs or slugs from links.
+    // The links in static data used string IDs like 'scuba'.
+    // The new DB data has _id. 
+    // We need to match robustly.
+    const category = categories.find(c => c.id === catId || c.slug === catId || c._id === catId);
+    const catTitle = category?.title || 'Kategori';
 
     seo.update(catTitle, `${catTitle} ekipmanlarında en iyi fiyatlar.`);
 
     app.innerHTML = `
       ${commonUI}
       <div id="main-content">
-        ${CategoryPage(catId, catTitle)}
+        ${CategoryPage(catId, catTitle, products)}
       </div>
       ${footerUI}
     `;
@@ -206,7 +219,7 @@ function render() {
       "offers": {
         "@type": "Offer",
         "priceCurrency": "TRY",
-        "price": product.price.replace(' ₺', '').replace('.', ''),
+        "price": typeof product.price === 'string' ? product.price.replace(' ₺', '').replace('.', '') : product.price,
         "availability": "https://schema.org/InStock"
       }
     });
@@ -220,10 +233,12 @@ function render() {
     `;
     setupCommonInteractions();
 
-    document.querySelector('.back-btn').addEventListener('click', () => {
-      window.history.back();
-      // if (currentRoute.page === 'product') navigate('home');
-    });
+    const backBtn = document.querySelector('.back-btn');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        window.history.back();
+      });
+    }
   }
   else if (currentRoute.page === 'cart') {
     app.innerHTML = `
@@ -390,15 +405,31 @@ function setupCommonInteractions() {
 
 // --- INITIALIZATION ---
 
+async function fetchCategoriesFromAPI() {
+  try {
+    const res = await fetch(`${API_BASE}/api/categories`);
+    return await res.json();
+  } catch (e) {
+    console.error('Kategoriler yüklenemedi', e);
+    return [];
+  }
+}
+
 // Initial render to show site immediately (even if backend is down)
 // --- INITIALIZATION ---
 
 (async () => {
   try {
-    products = await fetchProductsFromAPI();
+    // Parallel fetch for speed
+    const [prods, cats] = await Promise.all([
+      fetchProductsFromAPI(),
+      fetchCategoriesFromAPI()
+    ]);
+    products = prods;
+    categories = cats;
     render();
   } catch (e) {
-    console.error('Ürünler yüklenemedi', e);
+    console.error('Veri yüklenemedi', e);
     render();
   }
 })();

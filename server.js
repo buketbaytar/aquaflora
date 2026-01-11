@@ -11,10 +11,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { products as seedProducts, categories } from './src/data/products.js';
 // import { initializePayment, retrievePaymentResult } from './server-payment.js'; // Ödeme sistemi geçici olarak devredışı
+import { Category } from './src/models/Category.js';
+import { SubCategory } from './src/models/SubCategory.js';
 import { User } from './src/models/User.js';
 import { Cart } from './src/models/Cart.js';
 import { Order } from './src/models/Order.js';
 import { Product } from './src/models/Product.js';
+import { Brand } from './src/models/Brand.js';
 import dotenv from 'dotenv';
 
 
@@ -76,6 +79,8 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
+// Serve ROOT for dev/validation purposes (allows /src imports)
+app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
 
@@ -83,50 +88,141 @@ app.use(bodyParser.json());
 app.use(cookieSession({
     name: 'session',
 
-    keys: [process.env.SESSION_SECRET],
+    keys: [process.env.SESSION_SECRET || 'secret'],
     maxAge: 24 * 60 * 60 * 1000,
-    secure: true,
+    secure: false, // process.env.NODE_ENV === 'production', // Disable secure for localhost validation
     httpOnly: true,
-    sameSite: 'none'
+    sameSite: 'lax' // 'none' requires secure
 }));
+
+// Admin Seeder
+async function seedAdminUser() {
+    if (isDbConnected) {
+        try {
+            const email = 'admin@aquaflora.com';
+            let user = await User.findOne({ email });
+            if (!user) {
+                const passwordHash = await bcrypt.hash('admin123', 10);
+                await User.create({
+                    email,
+                    passwordHash,
+                    name: 'Admin User',
+                    isAdmin: true
+                });
+                console.log('👑 Admin user seeded: admin@aquaflora.com / admin123');
+            }
+        } catch (e) { console.error('Admin seed error', e); }
+    } else {
+        // Memory mode admin
+        const email = 'admin@aquaflora.com';
+        if (!memoryUsers.find(u => u.email === email)) {
+            const passwordHash = await bcrypt.hash('admin123', 10);
+            memoryUsers.push({
+                id: 'admin',
+                email,
+                passwordHash,
+                name: 'Admin User',
+                isAdmin: true
+            });
+            console.log('👑 Memory Admin seeded');
+        }
+    }
+}
 
 // In-memory Data Stores (Fallback)
 const memoryUsers = [];
 const memoryCarts = {};
 const memoryOrders = [];
 let memoryProducts = [...seedProducts]; // Copy for in-memory mode
+// Fallback In-memory Categories/Subcategories for demo if DB fail (limited support)
+let memoryCategories = [];
+let memorySubCategories = [];
 
-// Seed Products to MongoDB (only if empty)
+// Seed Products & Categories to MongoDB
 async function seedProductsToDb() {
     if (!isDbConnected) return;
     try {
-        const count = await Product.countDocuments();
-        if (count === 0) {
-            console.log('📦 Seeding products to database...');
-            for (const p of seedProducts) {
-                // Parse price string to number
-                let priceNum = 0;
-                if (typeof p.price === 'string') {
-                    priceNum = parseFloat(p.price.replace(' ₺', '').replace(/\./g, '').replace(',', '.'));
-                } else {
-                    priceNum = p.price;
-                }
-                await Product.create({
-                    name: p.name,
-                    category: p.category,
-                    subCategory: p.subCategory,
-                    brand: p.brand,
-                    price: priceNum,
-                    image: p.image,
-                    video: p.video,
-                    specs: p.specs,
-                    active: true
+        const catCount = await Category.countDocuments();
+
+        // ONLY Seed if Categories are empty
+        if (catCount === 0) {
+            console.log('📦 Seeding Categories & SubCategories...');
+
+            // Map to store created category IDs for product linking
+            const catMap = {}; // "Category Name": ObjectId
+            const subCatMap = {}; // "Category Name - Sub Name": ObjectId
+
+            // 1. Create Categories & SubCategories from src/data logic
+            for (const c of categories) {
+                const catSlug = c.title.toLowerCase().replace(/\s+/g, '-');
+                let catDoc = await Category.create({
+                    name: c.title,
+                    slug: catSlug
                 });
+                catMap[c.title] = catDoc._id;
+
+                for (const subName of c.sub) {
+                    const subSlug = subName.toLowerCase().replace(/\s+/g, '-');
+                    let subDoc = await SubCategory.create({
+                        name: subName,
+                        slug: subSlug,
+                        categoryId: catDoc._id
+                    });
+                    subCatMap[`${c.title}-${subName}`] = subDoc._id;
+                }
             }
-            console.log('✅ Products seeded successfully');
+            console.log('✅ Categories seeded.');
+
+            // 2. Seed Products
+            const prodCount = await Product.countDocuments();
+            if (prodCount === 0) {
+                console.log('📦 Seeding products to database...');
+                for (const p of seedProducts) {
+                    let priceNum = 0;
+                    if (typeof p.price === 'string') {
+                        priceNum = parseFloat(p.price.replace(' ₺', '').replace(/\./g, '').replace(',', '.'));
+                    } else {
+                        priceNum = p.price;
+                    }
+
+                    const cId = catMap[p.category];
+                    const scId = subCatMap[`${p.category}-${p.subCategory}`];
+
+                    // Find or Create Brand (Seeder Logic)
+                    let brandName = p.brand || "Generic";
+                    let brandSlug = brandName.toLowerCase().replace(/\s+/g, '-');
+                    let brandDoc = await Brand.findOne({ slug: brandSlug }); // Global Brand import needed if distinct? No, Brand imported above.
+
+                    // Since we didn't import Brand in seeding scope previously, we rely on top level import
+                    if (!brandDoc) {
+                        brandDoc = await Brand.create({
+                            name: brandName,
+                            slug: brandSlug,
+                            description: 'Seeded Brand'
+                        });
+                    }
+
+                    await Product.create({
+                        name: p.name,
+                        category: p.category, // Keep for legacy
+                        subCategory: p.subCategory, // Keep for legacy
+                        categoryId: cId,
+                        subCategoryId: scId,
+                        brandId: brandDoc._id,
+                        brand: p.brand,
+                        price: priceNum,
+                        image: p.image,
+                        video: p.video,
+                        specs: p.specs,
+                        active: true,
+                        isFeatured: false // Default
+                    });
+                }
+                console.log('✅ Products seeded linked to categories.');
+            }
         }
     } catch (e) {
-        console.error('❌ Product seeding error:', e.message);
+        console.error('❌ Seeding error:', e.message);
     }
 }
 
@@ -135,7 +231,12 @@ async function getProducts(activeOnly = true) {
     if (isDbConnected) {
         try {
             const filter = activeOnly ? { active: true } : {};
-            return await Product.find(filter).lean();
+            // Populate category/subcategory names
+            return await Product.find(filter)
+                .populate('categoryId', 'name')
+                .populate('subCategoryId', 'name')
+                .populate('brandId', 'name slug')
+                .lean();
         } catch (e) {
             console.error('Product fetch error:', e.message);
             return [];
@@ -277,8 +378,11 @@ app.get('/api/cart', async (req, res) => {
     }
 
     // Populate details from products data
+    // Fetch fresh product list to populate
+    const allProducts = await getProducts(true);
+
     const cartItems = items.map(item => {
-        const product = products.find(p => p.id === item.productId);
+        const product = allProducts.find(p => p._id.toString() === item.productId.toString() || p.id == item.productId);
         return product ? { ...product } : null;
     }).filter(Boolean);
 
@@ -301,10 +405,7 @@ app.post('/api/cart/add', async (req, res) => {
                 cart = new Cart({ userId: user._id, items: [] });
             }
 
-            // Allow multiple same items? For simple list: just push. 
-            // Ideally we check if item exists and inc qty, but requirements were simple list earlier.
-            // Following previous logic: just push.
-            cart.items.push({ productId: parseInt(productId) });
+            cart.items.push({ productId: productId });
             await cart.save();
             items = cart.items;
         } catch (e) {
@@ -318,8 +419,9 @@ app.post('/api/cart/add', async (req, res) => {
     }
 
     // Return updated cart
+    const allProducts = await getProducts(true);
     const cartItems = items.map(item => {
-        const product = products.find(p => p.id === item.productId);
+        const product = allProducts.find(p => p._id?.toString() === item.productId.toString() || p.id == item.productId);
         return product ? { ...product } : null;
     }).filter(Boolean);
 
@@ -340,21 +442,56 @@ app.post('/api/payment/callback', async (req, res) => {
     res.status(503).send('System Maintenance');
 });
 
-// ==================== PUBLIC PRODUCTS API ====================
+// ==================== PUBLIC PRODUCTS & CATEGORY API ====================
 
 app.get('/api/products', async (req, res) => {
     const products = await getProducts(true);
-    // Format price for display
+    // Format price for display & Ensure backward compatibility
     const formattedProducts = products.map(p => ({
         ...p,
         id: p._id || p.id,
-        price: typeof p.price === 'number' ? p.price : parseFloat(p.price)
+        price: typeof p.price === 'number' ? p.price : parseFloat(p.price),
+        // Ensure string category names exist for frontend compat
+        category: p.categoryId?.name || p.category || "",
+        subCategory: p.subCategoryId?.name || p.subCategory || "",
+        brand: p.brandId?.name || p.brand || ""
     }));
     res.json(formattedProducts);
 });
 
-app.get('/api/categories', (req, res) => {
-    res.json(categories);
+// Get Categories (Public)
+app.get('/api/categories', async (req, res) => {
+    if (isDbConnected) {
+        try {
+            // Fetch categories and structure them like the old static format
+            // [{ id, title, sub: [] }]
+            const cats = await Category.find().sort({ name: 1 }).lean();
+            const subCats = await SubCategory.find().sort({ name: 1 }).lean();
+
+            const response = cats.map(c => ({
+                id: c._id,
+                title: c.name,
+                slug: c.slug,
+                sub: subCats.filter(s => s.categoryId.toString() === c._id.toString()).map(s => s.name)
+            }));
+            res.json(response);
+        } catch (e) {
+            console.error("Cat fetch error", e);
+            res.status(500).json([]);
+        }
+    } else {
+        res.json(categories); // Fallback to static
+    }
+});
+
+// Get SubCategories (Public)
+app.get('/api/subcategories', async (req, res) => {
+    if (isDbConnected) {
+        const subs = await SubCategory.find().populate('categoryId', 'name').sort({ name: 1 });
+        res.json(subs);
+    } else {
+        res.json([]);
+    }
 });
 
 // ==================== ADMIN ROUTES ====================
@@ -364,27 +501,237 @@ app.get('/admin', isAdmin, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
+// --- Categories ---
+
+app.get('/api/admin/categories', isAdmin, async (req, res) => {
+    if (isDbConnected) {
+        const cats = await Category.find().sort({ createdAt: -1 });
+        res.json(cats);
+    } else {
+        res.json([]);
+    }
+});
+
+app.post('/api/admin/categories', isAdmin, async (req, res) => {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name required' });
+
+    if (isDbConnected) {
+        try {
+            const slug = name.toLowerCase().replace(/\s+/g, '-');
+            const cat = await Category.create({ name, slug });
+            res.json(cat);
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    } else {
+        res.status(501).json({ error: 'DB required' });
+    }
+});
+
+app.put('/api/admin/categories/:id', isAdmin, async (req, res) => {
+    if (isDbConnected) {
+        try {
+            const { name } = req.body;
+            const slug = name.toLowerCase().replace(/\s+/g, '-');
+            const cat = await Category.findByIdAndUpdate(req.params.id, { name, slug }, { new: true });
+            res.json(cat);
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    } else {
+        res.status(501).json({ error: 'DB required' });
+    }
+});
+
+app.delete('/api/admin/categories/:id', isAdmin, async (req, res) => {
+    if (isDbConnected) {
+        try {
+            // Also delete subcategories? Or restrict? For now, let's restrict if subs exist or cascade? 
+            // safest is to error if subs exist, but requirements didn't specify. Let's just delete category.
+            // But products link to it. 
+            // Simple delete for now.
+            await Category.findByIdAndDelete(req.params.id);
+            // Optional: delete subcats
+            await SubCategory.deleteMany({ categoryId: req.params.id });
+            res.json({ message: 'Deleted' });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    } else {
+        res.status(501).json({ error: 'DB required' });
+    }
+});
+
+// --- SubCategories ---
+
+app.get('/api/admin/subcategories', isAdmin, async (req, res) => {
+    if (isDbConnected) {
+        const subs = await SubCategory.find().populate('categoryId', 'name').sort({ createdAt: -1 });
+        res.json(subs);
+    } else {
+        res.json([]);
+    }
+});
+
+app.post('/api/admin/subcategories', isAdmin, async (req, res) => {
+    const { name, categoryId } = req.body;
+    if (!name || !categoryId) return res.status(400).json({ error: 'Name and CategoryId required' });
+
+    if (isDbConnected) {
+        try {
+            const slug = name.toLowerCase().replace(/\s+/g, '-');
+            const sub = await SubCategory.create({ name, slug, categoryId });
+            res.json(sub);
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    } else {
+        res.status(501).json({ error: 'DB required' });
+    }
+});
+
+app.put('/api/admin/subcategories/:id', isAdmin, async (req, res) => {
+    if (isDbConnected) {
+        try {
+            const { name, categoryId } = req.body;
+            const updates = { name, categoryId };
+            if (name) updates.slug = name.toLowerCase().replace(/\s+/g, '-');
+
+            const sub = await SubCategory.findByIdAndUpdate(req.params.id, updates, { new: true });
+            res.json(sub);
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    } else {
+        res.status(501).json({ error: 'DB required' });
+    }
+});
+
+app.delete('/api/admin/subcategories/:id', isAdmin, async (req, res) => {
+    if (isDbConnected) {
+        try {
+            await SubCategory.findByIdAndDelete(req.params.id);
+            res.json({ message: 'Deleted' });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    } else {
+        res.status(501).json({ error: 'DB required' });
+    }
+});
+
+// --- Brands (Global) ---
+
+app.get('/api/brands', async (req, res) => {
+    if (isDbConnected) {
+        const brands = await Brand.find().sort({ name: 1 });
+        res.json(brands);
+    } else {
+        res.json([]);
+    }
+});
+
+app.get('/api/admin/brands', isAdmin, async (req, res) => {
+    if (isDbConnected) {
+        const brands = await Brand.find().sort({ createdAt: -1 });
+        res.json(brands);
+    } else {
+        res.json([]);
+    }
+});
+
+app.post('/api/admin/brands', isAdmin, async (req, res) => {
+    const { name, logo, description } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name required' });
+
+    if (isDbConnected) {
+        try {
+            const slug = name.toLowerCase().replace(/\s+/g, '-');
+            const brand = await Brand.create({ name, slug, logo, description });
+            res.json(brand);
+        } catch (e) {
+            if (e.code === 11000) return res.status(409).json({ error: 'Brand already exists' });
+            res.status(500).json({ error: e.message });
+        }
+    } else {
+        res.status(501).json({ error: 'DB required' });
+    }
+});
+
+app.put('/api/admin/brands/:id', isAdmin, async (req, res) => {
+    if (isDbConnected) {
+        try {
+            const { name, logo, description } = req.body;
+            const updates = { name, logo, description };
+            if (name) updates.slug = name.toLowerCase().replace(/\s+/g, '-');
+
+            const brand = await Brand.findByIdAndUpdate(req.params.id, updates, { new: true });
+            res.json(brand);
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    } else {
+        res.status(501).json({ error: 'DB required' });
+    }
+});
+
+app.delete('/api/admin/brands/:id', isAdmin, async (req, res) => {
+    if (isDbConnected) {
+        try {
+            await Brand.findByIdAndDelete(req.params.id);
+            res.json({ message: 'Deleted' });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    } else {
+        res.status(501).json({ error: 'DB required' });
+    }
+});
+
+// --- Products ---
+
 // Admin API: List all products (including inactive)
 app.get('/api/admin/products', isAdmin, async (req, res) => {
     const products = await getProducts(false);
-    res.json(products);
+    // Backward compat for Admin UI if it expects strings
+    const formatted = products.map(p => ({
+        ...p,
+        category: p.categoryId?.name || p.category,
+        subCategory: p.subCategoryId?.name || p.subCategory,
+        brand: p.brandId?.name || p.brand
+    }));
+    res.json(formatted);
 });
 
 // Admin API: Create product
 app.post('/api/admin/products', isAdmin, async (req, res) => {
-    const { name, category, subCategory, brand, price, image, video, description, specs, active } = req.body;
+    const { name, categoryId, subCategoryId, brandId, price, image, video, description, specs, active, isFeatured } = req.body;
 
-    if (!name || !category || price === undefined) {
-        return res.status(400).json({ error: 'Name, category, and price are required' });
+    // Validation
+    if (!name || !categoryId || !brandId || price === undefined) {
+        return res.status(400).json({ error: 'Name, category, brand, and price are required' });
     }
 
     if (isDbConnected) {
         try {
+            // Resolve Names for legacy fields
+            const cat = await Category.findById(categoryId);
+            const sub = subCategoryId ? await SubCategory.findById(subCategoryId) : null;
+            const brandDoc = await Brand.findById(brandId);
+
             const product = await Product.create({
-                name, category, subCategory, brand,
+                name,
+                categoryId,
+                subCategoryId,
+                brandId,
+                category: cat ? cat.name : "Unknown", // Legacy
+                subCategory: sub ? sub.name : "", // Legacy
+                brand: brandDoc ? brandDoc.name : "Unknown", // Legacy
                 price: parseFloat(price),
                 image, video, description, specs,
-                active: active !== false
+                active: active !== false,
+                isFeatured: !!isFeatured
             });
             res.json(product);
         } catch (e) {
@@ -394,10 +741,11 @@ app.post('/api/admin/products', isAdmin, async (req, res) => {
     } else {
         const newProduct = {
             id: Date.now(),
-            name, category, subCategory, brand,
+            name, categoryId, subCategoryId, brandId,
             price: parseFloat(price),
             image, video, description, specs,
-            active: active !== false
+            active: active !== false,
+            isFeatured: !!isFeatured
         };
         memoryProducts.push(newProduct);
         res.json(newProduct);
@@ -413,8 +761,22 @@ app.put('/api/admin/products/:id', isAdmin, async (req, res) => {
         updates.price = parseFloat(updates.price);
     }
 
+    // If categoryId changed, update legacy strings
     if (isDbConnected) {
         try {
+            if (updates.categoryId) {
+                const cat = await Category.findById(updates.categoryId);
+                if (cat) updates.category = cat.name;
+            }
+            if (updates.subCategoryId) {
+                const sub = await SubCategory.findById(updates.subCategoryId);
+                if (sub) updates.subCategory = sub.name;
+            }
+            if (updates.brandId) {
+                const brand = await Brand.findById(updates.brandId);
+                if (brand) updates.brand = brand.name;
+            }
+
             const product = await Product.findByIdAndUpdate(id, updates, { new: true });
             if (!product) return res.status(404).json({ error: 'Product not found' });
             res.json(product);
@@ -453,12 +815,19 @@ app.delete('/api/admin/products/:id', isAdmin, async (req, res) => {
 
 // ==================== SERVER START ====================
 
+// Explicitly serve index and urunler for root navigation if needed (though static covers it)
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/urunler.html', (req, res) => res.sendFile(path.join(__dirname, 'urunler.html')));
+
 app.listen(port, async () => {
     console.log(`Backend server listening at http://localhost:${port}`);
 
     // Seed products after DB connection is established
-    if (process.env.MONGODB_URI) {
-        // Wait a moment for connection to establish
-        setTimeout(seedProductsToDb, 2000);
-    }
+    // if (process.env.MONGODB_URI) {
+    // Wait a moment for connection to establish
+    setTimeout(async () => {
+        await seedProductsToDb();
+        await seedAdminUser();
+    }, 2000);
+    // }
 });

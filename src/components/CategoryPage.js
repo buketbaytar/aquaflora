@@ -1,23 +1,19 @@
-import { products } from '../data/products.js';
-import { ProductCard } from './ProductCard.js';
+export function CategoryPage(categoryId, title, products = []) {
+  // Filter products by category
+  // Robust matching: Match by Category Name (title) OR by categoryId
+  const categoryProducts = products.filter(p => {
+    // Match string name
+    if (p.category === title) return true;
 
-export function CategoryPage(categoryId, title) {
-    // Filter products by category (simple matching for now)
-    // Map categoryId (slug) to the real category string in data
-    const categoryMap = {
-        'scuba': 'Tüplü Dalış',
-        'freedive': 'Serbest Dalış & Zıpkın',
-        'swim': 'Yüzme',
-        'outdoor': 'Kamp & Outdoor'
-    };
+    // Match ObjectId (if populated or direct)
+    const pCatId = p.categoryId?._id || p.categoryId;
+    return pCatId === categoryId;
+  });
 
-    const dbCategory = categoryMap[categoryId] || '';
-    const categoryProducts = products.filter(p => p.category === dbCategory);
+  // Extract unique brands for filter
+  const brands = [...new Set(categoryProducts.map(p => p.brand))];
 
-    // Extract unique brands for filter
-    const brands = [...new Set(categoryProducts.map(p => p.brand))];
-
-    return `
+  return `
     <div class="category-page container fade-in-up">
       <div class="category-header">
          <h1 class="page-title text-glow">${title}</h1>
@@ -46,9 +42,9 @@ export function CategoryPage(categoryId, title) {
         <!-- Product Grid -->
         <div class="category-products">
            ${categoryProducts.length > 0
-            ? `<div class="product-grid">${categoryProducts.map(p => ProductCard(p)).join('')}</div>`
-            : `<p class="no-products">Bu kategoride henüz ürün bulunmuyor.</p>`
-        }
+      ? `<div class="product-grid">${categoryProducts.map(p => ProductCard(p)).join('')}</div>`
+      : `<p class="no-products">Bu kategoride henüz ürün bulunmuyor.</p>`
+    }
         </div>
       </div>
     </div>
