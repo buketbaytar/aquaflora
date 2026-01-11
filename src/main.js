@@ -180,29 +180,24 @@ function render() {
         }
       }
 
-      const container = document.querySelector('.products-container');
-      if (container) {
-        container.innerHTML = ProductList(newFiltered);
-        setupProductInteractions();
-      }
-    });
-  };
 
-  renderProductsPage();
-}
+    };
+
+    renderProductsPage();
+  }
   else if (currentRoute.page === 'home') {
-  seo.setDefaults();
+    seo.setDefaults();
 
-  // Featured Products Logic
-  const featuredProducts = products.filter(p => p.isFeatured === true);
-  // If no featured products, maybe show 4 random ones or just none. Requirement says: "Featured products appear on homepage"
-  // Let's fallback to first 4 if none marked, or just show them.
-  const displayProducts = featuredProducts.length > 0 ? featuredProducts : products.slice(0, 4);
+    // Featured Products Logic
+    const featuredProducts = products.filter(p => p.isFeatured === true);
+    // If no featured products, maybe show 4 random ones or just none. Requirement says: "Featured products appear on homepage"
+    // Let's fallback to first 4 if none marked, or just show them.
+    const displayProducts = featuredProducts.length > 0 ? featuredProducts : products.slice(0, 4);
 
-  // Modify ProductList to change title if needed or wrap it
-  // ProductList component has hardcoded title "Öne Çıkan Ekipmanlar" which fits perfectly.
+    // Modify ProductList to change title if needed or wrap it
+    // ProductList component has hardcoded title "Öne Çıkan Ekipmanlar" which fits perfectly.
 
-  app.innerHTML = `
+    app.innerHTML = `
       ${commonUI}
       <div id="main-content">
           ${Hero()}
@@ -211,92 +206,92 @@ function render() {
       </div>
       ${footerUI}
     `;
-  setupHomePageInteractions();
-}
-else if (currentRoute.page === 'category') {
-  const catId = currentRoute.params.id;
-  // Categories now have mongodb _id, but we might be using string IDs or slugs from links.
-  // The links in static data used string IDs like 'scuba'.
-  // The new DB data has _id. 
-  // We need to match robustly.
-  const category = categories.find(c => c.id === catId || c.slug === catId || c._id === catId);
-  const catTitle = category?.title || 'Kategori';
+    setupHomePageInteractions();
+  }
+  else if (currentRoute.page === 'category') {
+    const catId = currentRoute.params.id;
+    // Categories now have mongodb _id, but we might be using string IDs or slugs from links.
+    // The links in static data used string IDs like 'scuba'.
+    // The new DB data has _id. 
+    // We need to match robustly.
+    const category = categories.find(c => c.id === catId || c.slug === catId || c._id === catId);
+    const catTitle = category?.title || 'Kategori';
 
-  seo.update(catTitle, `${catTitle} ekipmanlarında en iyi fiyatlar.`);
+    seo.update(catTitle, `${catTitle} ekipmanlarında en iyi fiyatlar.`);
 
-  app.innerHTML = `
+    app.innerHTML = `
       ${commonUI}
       <div id="main-content">
         ${CategoryPage(catId, catTitle, products)}
       </div>
       ${footerUI}
     `;
-  setupCommonInteractions();
-}
-else if (currentRoute.page === 'product') {
-  const product = products.find(p => p.id === parseInt(currentRoute.params.id));
+    setupCommonInteractions();
+  }
+  else if (currentRoute.page === 'product') {
+    const product = products.find(p => p.id === parseInt(currentRoute.params.id));
 
-  seo.update(product.name, `${product.name} - ${product.price}. Teknik özellikler ve detaylar.`);
-  // Add Structured Data
-  seo.setJsonLd({
-    "@context": "https://schema.org/",
-    "@type": "Product",
-    "name": product.name,
-    "image": product.image,
-    "description": `Professional ${product.name} for underwater sports.`,
-    "brand": {
-      "@type": "Brand",
-      "name": product.brand
-    },
-    "offers": {
-      "@type": "Offer",
-      "priceCurrency": "TRY",
-      "price": typeof product.price === 'string' ? product.price.replace(' ₺', '').replace('.', '') : product.price,
-      "availability": "https://schema.org/InStock"
-    }
-  });
+    seo.update(product.name, `${product.name} - ${product.price}. Teknik özellikler ve detaylar.`);
+    // Add Structured Data
+    seo.setJsonLd({
+      "@context": "https://schema.org/",
+      "@type": "Product",
+      "name": product.name,
+      "image": product.image,
+      "description": `Professional ${product.name} for underwater sports.`,
+      "brand": {
+        "@type": "Brand",
+        "name": product.brand
+      },
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "TRY",
+        "price": typeof product.price === 'string' ? product.price.replace(' ₺', '').replace('.', '') : product.price,
+        "availability": "https://schema.org/InStock"
+      }
+    });
 
-  app.innerHTML = `
+    app.innerHTML = `
       ${commonUI}
       <div id="main-content">
           ${ProductDetail(product)}
       </div>
       ${footerUI}
     `;
-  setupCommonInteractions();
+    setupCommonInteractions();
 
-  const backBtn = document.querySelector('.back-btn');
-  if (backBtn) {
-    backBtn.addEventListener('click', () => {
-      window.history.back();
-    });
+    const backBtn = document.querySelector('.back-btn');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        window.history.back();
+      });
+    }
   }
-}
-else if (currentRoute.page === 'cart') {
-  app.innerHTML = `
+  else if (currentRoute.page === 'cart') {
+    app.innerHTML = `
       ${commonUI}
       <div id="main-content" style="margin-top: 100px;">
           ${CartPage()}
       </div>
       ${footerUI}
     `;
-  setupCommonInteractions();
-  setupCartInteractions();
-}
-else if (currentRoute.page === 'payment-result') {
-  // This page might be hit by redirection with query params ?status=success
-  app.innerHTML = `
+    setupCommonInteractions();
+    setupCartInteractions();
+  }
+  else if (currentRoute.page === 'payment-result') {
+    // This page might be hit by redirection with query params ?status=success
+    app.innerHTML = `
       ${commonUI}
       <div id="main-content" style="margin-top: 100px;">
           ${PaymentResult()}
       </div>
       ${footerUI}
     `;
-  setupCommonInteractions();
-}
+    setupCommonInteractions();
+  }
 
-// Setup Auth Interactions (Modal, etc)
-setupAuthInteractions();
+  // Setup Auth Interactions (Modal, etc)
+  setupAuthInteractions();
 }
 
 function setupAuthInteractions() {
