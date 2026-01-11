@@ -51,7 +51,13 @@ const allowedOrigins = [
 // Database Connection
 let isDbConnected = false;
 if (process.env.MONGODB_URI) {
-    mongoose.connect(process.env.MONGODB_URI)
+    mongoose.connect(process.env.MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 30000,
+        socketTimeoutMS: 45000,
+        family: 4
+    })
         .then(() => {
             console.log('✅ MongoDB Connected');
             isDbConnected = true;
