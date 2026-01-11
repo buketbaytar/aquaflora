@@ -24,7 +24,9 @@ import dotenv from 'dotenv';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config();
+}
 
 const app = express();
 app.get('/api/debug', (req, res) => {
@@ -92,7 +94,7 @@ app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-import csrf from 'csurf';const csrfProtection = csrf({
+import csrf from 'csurf'; const csrfProtection = csrf({
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Must match session cookie settings
