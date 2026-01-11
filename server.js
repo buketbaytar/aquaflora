@@ -18,15 +18,13 @@ import { Cart } from './src/models/Cart.js';
 import { Order } from './src/models/Order.js';
 import { Product } from './src/models/Product.js';
 import { Brand } from './src/models/Brand.js';
-import dotenv from 'dotenv';
+
 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-if (process.env.NODE_ENV !== 'production') {
-    dotenv.config();
-}
+
 
 const app = express();
 app.get('/api/debug', (req, res) => {
