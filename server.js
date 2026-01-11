@@ -351,8 +351,58 @@ app.get('/api/auth/me', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Not authenticated' });
 
     // Mongoose document vs POJO
-    const userData = isDbConnected ? { id: user._id, email: user.email, name: user.name } : { id: user.id, email: user.email, name: user.name };
+    const userData = isDbConnected ? { id: user._id, email: user.email, name: user.name, favorites: user.favorites || [] } : { id: user.id, email: user.email, name: user.name, favorites: [] };
     res.json(userData);
+});
+
+// --- Favorites API ---
+app.get('/api/favorites', async (req, res) => {
+    const user = await getUser(req);
+    if (!user) return res.status(401).json({ error: 'Not authenticated' });
+
+    if (isDbConnected) {
+        try {
+            // Populate favorites
+            const dbUser = await User.findById(user._id).populate('favorites');
+            res.json(dbUser.favorites);
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    } else {
+        res.json([]);
+    }
+});
+
+app.post('/api/favorites/:id', async (req, res) => {
+    const user = await getUser(req);
+    if (!user) return res.status(401).json({ error: 'Not authenticated' });
+
+    if (isDbConnected) {
+        try {
+            await User.findByIdAndUpdate(user._id, { $addToSet: { favorites: req.params.id } });
+            res.json({ success: true });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    } else {
+        res.status(501).json({ error: 'DB required' });
+    }
+});
+
+app.delete('/api/favorites/:id', async (req, res) => {
+    const user = await getUser(req);
+    if (!user) return res.status(401).json({ error: 'Not authenticated' });
+
+    if (isDbConnected) {
+        try {
+            await User.findByIdAndUpdate(user._id, { $pull: { favorites: req.params.id } });
+            res.json({ success: true });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    } else {
+        res.status(501).json({ error: 'DB required' });
+    }
 });
 
 // Cart Endpoints
@@ -457,7 +507,24 @@ app.get('/api/products', async (req, res) => {
         brand: p.brandId?.name || p.brand || ""
     }));
     res.json(formattedProducts);
+    res.json(formattedProducts);
 });
+
+app.post('/api/products/:id/view', async (req, res) => {
+    if (isDbConnected) {
+        try {
+            await Product.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
+            res.json({ success: true });
+        } catch (e) {
+            // Ignore error silently or log
+            console.log('View inc error', e);
+            res.status(200).json({ success: false }); // Don't block
+        }
+    } else {
+        res.json({ success: false });
+    }
+});
+
 
 // Get Categories (Public)
 app.get('/api/categories', async (req, res) => {

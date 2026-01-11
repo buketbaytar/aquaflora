@@ -1,28 +1,28 @@
 export function Footer() {
   return `
     <footer class="site-footer">
-      <div class="container footer-grid">
-        <!-- Brand & Geo -->
-        <div class="footer-section company-info">
-          <div class="footer-logo">
-            <span class="logo-icon">🌊</span>
-            <span class="logo-text">AQUA<span class="highlight">FLORA</span></span>
-          </div>
-          <p class="footer-desc">
-            Sualtı tutkunları için teknolojiyi ve performansı birleştiren yeni nesil ekipmanlar.
-          </p>
-          <div class="geo-info">
-             <div class="geo-item">
-               <span>📍</span>
-               <span>DeepDive Flagship Store<br>Mersin, Türkiye</span>
-             </div>
-             <div class="geo-item">
-               <span>📞</span>
-               <span>0850 123 45 67</span>
-             </div>
-          </div>
+      <!-- Company Info (Top) -->
+      <div class="container footer-top">
+        <div class="footer-logo">
+          <span class="logo-icon">🌊</span>
+          <span class="logo-text">AQUA<span class="highlight">FLORA</span></span>
         </div>
+        <p class="footer-desc">
+          Sualtı tutkunları için teknolojiyi ve performansı birleştiren yeni nesil ekipmanlar.
+        </p>
+        <div class="geo-info">
+           <div class="geo-item">
+             <span>📍</span>
+             <span>DeepDive Flagship Store | Mersin, Türkiye</span>
+           </div>
+           <div class="geo-item">
+             <span>📞</span>
+             <span>0850 123 45 67</span>
+           </div>
+        </div>
+      </div>
 
+      <div class="container footer-grid">
         <!-- Categories -->
         <div class="footer-section">
           <h4>Kategoriler</h4>

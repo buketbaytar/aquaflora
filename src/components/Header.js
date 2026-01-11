@@ -56,6 +56,11 @@ export function Header(user, categories = []) {
             <div class="user-actions">
               ${userSection}
               
+              <button class="action-btn fav-header-btn" title="Favorilerim">
+                  <span class="icon">❤️</span>
+                  <span class="fav-count">0</span>
+              </button>
+
               <button class="action-btn cart-btn">
                  <span class="icon">🛒</span>
                  <span class="cart-count">0</span>

@@ -333,10 +333,17 @@ button {
 
 .footer-grid {
     display: grid;
-    /* 5 Columns: Company(1.5), Cats(1), Corp(1), Social(1), Newsletter(1.2) */
-    grid-template-columns: 1.5fr 1fr 1fr 1fr 1.2fr;
-    gap: var(--spacing-md);
+    /* 4 Columns: Categories, Corporate, Social, Newsletter */
+    grid-template-columns: 1fr 1fr 1fr 1.2fr;
+    gap: 3rem;
     margin-bottom: var(--spacing-lg);
+    align-items: flex-start;
+}
+
+.footer-top {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .footer-section h4 {
@@ -482,7 +489,20 @@ button {
     .footer-grid {
         display: flex;
         flex-direction: column;
-        gap: 3rem;
+        gap: 2rem;
+    }
+
+    .footer-top {
+        text-align: center;
+    }
+
+    .footer-logo {
+        justify-content: center;
+    }
+
+    .geo-info {
+        justify-content: center;
+        flex-wrap: wrap;
     }
 
     .footer-section {

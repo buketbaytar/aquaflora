@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const productSchema = new mongoose.Schema({
     name: { type: String, required: true },
+    id: { type: Number, unique: true }, // Legacy ID support
     // Deprecated string fields kept for compatibility
     category: { type: String, required: true },
     subCategory: { type: String },
@@ -18,6 +19,7 @@ const productSchema = new mongoose.Schema({
     video: { type: String },
     description: { type: String },
     specs: { type: mongoose.Schema.Types.Mixed },
+    views: { type: Number, default: 0 },
     active: { type: Boolean, default: true },
     createdAt: { type: Date, default: Date.now }
 });

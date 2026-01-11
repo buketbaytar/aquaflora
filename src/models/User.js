@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema({
     passwordHash: { type: String, required: true },
     name: { type: String },
     isAdmin: { type: Boolean, default: false },
+    favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
     createdAt: { type: Date, default: Date.now }
 });
 
