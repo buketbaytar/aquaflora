@@ -58,9 +58,17 @@ if (process.env.MONGODB_URI) {
         })
         .catch(err => {
             console.error('❌ MongoDB Connection Error:', err.message);
+            if (process.env.NODE_ENV === 'production') {
+                console.error('❌ FATAL: Database required in production. Exiting.');
+                process.exit(1);
+            }
             console.warn('⚠️ Server running without database. Persistence disabled.');
         });
 } else {
+    if (process.env.NODE_ENV === 'production') {
+        console.error('❌ FATAL: MONGODB_URI not defined. Exiting.');
+        process.exit(1);
+    }
     console.warn('⚠️ MONGODB_URI not found. Server running in memory-only mode.');
 }
 
@@ -84,32 +92,59 @@ app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
 
+const csrf = require('csurf');
+
+const csrfProtection = csrf({
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Must match session cookie settings
+        // httpOnly: true // Default is false which allows JS to read. WE WANT httpOnly=true for security, but we need to pass token via headers.
+        // Actually, csurf by default checks HEADERS. We can pass the token in a meta tag or specific endpoint.
+        // Let's use a specific endpoint to get the token for SPA/Admin usage.
+    }
+});
+
+// Apply CSRF to all non-GET requests or globally? 
+// For this project, we want to protect mutation endpoints.
+// We'll apply it globally but might need exclusion for some external callbacks (none implemented yet).
+// Note: cookie-session is used, csurf supports it.
+
+// API routes might be stateless (JWT)? No, this project uses cookie-session. So CSRF IS REQUIRED.
+
 app.use(bodyParser.json());
 app.use(cookieSession({
     name: 'session',
-
     keys: [process.env.SESSION_SECRET || 'secret'],
     maxAge: 24 * 60 * 60 * 1000,
-    secure: false, // process.env.NODE_ENV === 'production', // Disable secure for localhost validation
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'lax' // 'none' requires secure
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
 }));
+
+// Apply CSRF after cookie-session
+app.use(csrfProtection);
+
+// CSRF Token Endpoint
+app.get('/api/csrf-token', (req, res) => {
+    res.json({ csrfToken: req.csrfToken() });
+});
 
 // Admin Seeder
 async function seedAdminUser() {
     if (isDbConnected) {
         try {
-            const email = 'admin@aquaflora.com';
+            const email = process.env.ADMIN_EMAIL || 'admin@aquaflora.com'; // Use ENV
             let user = await User.findOne({ email });
             if (!user) {
-                const passwordHash = await bcrypt.hash('admin123', 10);
+                const password = process.env.ADMIN_PASSWORD || 'admin123'; // Use ENV
+                const passwordHash = await bcrypt.hash(password, 10);
                 await User.create({
                     email,
                     passwordHash,
                     name: 'Admin User',
                     isAdmin: true
                 });
-                console.log('👑 Admin user seeded: admin@aquaflora.com / admin123');
+                console.log('👑 Admin user seeded.'); // Removed password log
             }
         } catch (e) { console.error('Admin seed error', e); }
     } else {

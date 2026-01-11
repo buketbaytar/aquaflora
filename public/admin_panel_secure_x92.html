@@ -476,7 +476,7 @@
 
 
     <script>
-        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '' : 'https://aquaflora-backend.onrender.com';
+        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '' : 'https://api.aqualora.shop';
 
         let products = [];
         let categories = [];
@@ -498,7 +498,20 @@
         }
 
         // --- Initial Load ---
+        let csrfToken = '';
+
         async function init() {
+            // Get CSRF Token
+            try {
+                const res = await fetch(`${API_BASE}/api/csrf-token`, { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    csrfToken = data.csrfToken;
+                }
+            } catch (e) {
+                console.error('CSRF Token fetch error', e);
+            }
+
             // Load cats & subs & brands first for dropdowns
             await Promise.all([loadCategories(), loadSubCategories(), loadBrands()]);
             loadProducts();
@@ -510,9 +523,24 @@
 
         async function fetchAPI(endpoint, options = {}) {
             options.credentials = 'include';
+
+            // Add CSRF Token to headers for mutation requests
+            if (options.method && options.method !== 'GET') {
+                options.headers = {
+                    ...options.headers,
+                    'CSRF-Token': csrfToken
+                };
+            }
+
             const res = await fetch(`${API_BASE}${endpoint}`, options);
             if (res.status === 401) { window.location.href = '/'; return null; }
-            if (res.status === 403) { alert('Yetkisiz işlem'); return null; }
+            if (res.status === 403) {
+                const text = await res.text();
+                // Check if it's invalid csrf token
+                if (text.includes('csrf')) alert('Güvenlik hatası (CSRF). Sayfayı yenileyiniz.');
+                else alert('Yetkisiz işlem');
+                return null;
+            }
             return res;
         }
 

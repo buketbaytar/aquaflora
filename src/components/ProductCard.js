@@ -1,4 +1,5 @@
 import { formatPriceTR } from '../utils/formatPrice.js';
+import { escapeHTML } from '../utils/sanitize.js';
 
 export function ProductCard(product) {
   const isFavorite = window.userFavorites?.includes(product.id) ? 'active' : '';
@@ -10,7 +11,7 @@ export function ProductCard(product) {
       </button>
 
       <div class="media-container">
-        <img src="${product.image}" alt="${product.name}" class="product-img">
+        <img src="${product.image}" loading="lazy" alt="${escapeHTML(product.name)}" class="product-img">
         <video 
           src="${product.video}" 
           class="product-video" 
@@ -23,8 +24,8 @@ export function ProductCard(product) {
       </div>
       
       <div class="card-content">
-        <div class="category">${product.brand || product.category}</div>
-        <h3 class="product-name">${product.name}</h3>
+        <div class="category">${escapeHTML(product.brand || product.category)}</div>
+        <h3 class="product-name">${escapeHTML(product.name)}</h3>
         <div class="price">${formatPriceTR(product.price)}</div>
         
         <button class="add-cart-btn">

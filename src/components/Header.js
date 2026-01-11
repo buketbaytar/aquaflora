@@ -1,12 +1,14 @@
+import { escapeHTML } from '../utils/sanitize.js';
+
 export function Header(user, categories = []) {
   // Define navItems
   // Define navItems
   const navItems = categories.map(cat => `
     <li class="nav-item group">
-      <a href="/urunler.html?category=${cat.id}">${cat.title}</a>
+      <a href="/urunler.html?category=${cat.id}">${escapeHTML(cat.title)}</a>
       <div class="mega-menu glass-panel">
         <ul>
-          ${cat.sub.map(sub => `<li><a href="/urunler.html?subCategory=${sub.slug}&category=${cat.id}">${sub.name}</a></li>`).join('')}
+          ${cat.sub.map(sub => `<li><a href="/urunler.html?subCategory=${sub.slug}&category=${cat.id}">${escapeHTML(sub.name)}</a></li>`).join('')}
         </ul>
       </div>
     </li>
@@ -16,7 +18,7 @@ export function Header(user, categories = []) {
   const userSection = user
     ? `
       <div class="user-profile">
-        <span class="user-greeting">Merhaba, ${user.name}</span>
+        <span class="user-greeting">Merhaba, ${escapeHTML(user.name)}</span>
         <button class="action-btn logout-btn" title="Çıkış Yap">
            Çıkış Yap <span class="icon">🚪</span>
         </button>
@@ -210,4 +212,5 @@ export function setupHeader() {
     }
   });
 }
+
 

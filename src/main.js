@@ -1,4 +1,4 @@
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '' : 'https://aquaflora-backend.onrender.com';
+const API_BASE = 'https://api.aqualora.shop';
 
 async function fetchProductsFromAPI() {
   const res = await fetch(`${API_BASE}/api/products`, { cache: 'no-store' });
@@ -40,6 +40,11 @@ function navigate(page, params = {}) {
   currentRoute = { page, params };
   render();
   window.scrollTo(0, 0);
+
+  // Dynamic Title Update
+  if (page === 'home') document.title = 'Aqualora | Modern Online Alışveriş';
+  else if (page === 'cart') document.title = 'Sepetim | Aqualora';
+  else if (page === 'favorites') document.title = 'Favorilerim | Aqualora';
 }
 
 // Global click handler for links
@@ -100,7 +105,7 @@ document.addEventListener('click', (e) => {
     // Check if it's the large PDP button
     if (btn.classList.contains('large')) {
       const id = parseInt(currentRoute.params.id);
-      const p = products.find(prod => prod.id === id);
+      const p = products.find(prod => (prod._id === id || prod.id === id));
       if (p) Cart.add(p);
       return;
     }
@@ -108,7 +113,7 @@ document.addEventListener('click', (e) => {
     let productToAdd = null;
     if (e.target.closest('.product-card')) {
       const id = parseInt(e.target.closest('.product-card').dataset.id);
-      productToAdd = products.find(p => p.id === id);
+      productToAdd = products.find(p => (p._id === id || p.id === id));
       e.stopPropagation(); // prevent navigation
     }
 
@@ -265,7 +270,7 @@ function render() {
   }
   else if (currentRoute.page === 'product') {
     const productId = parseInt(currentRoute.params.id);
-    const product = products.find(p => p.id === productId);
+    const product = products.find(p => (p.id || p._id) === productId);
 
     // Call View Counter API
     // Fire and forget, don't await blocking UI
@@ -312,7 +317,7 @@ function render() {
     // If user is not logged in / logic not ready, fallback to empty
     let favProducts = [];
     if (window.userFavorites && window.userFavorites.length > 0) {
-      favProducts = products.filter(p => window.userFavorites.includes(p.id));
+      favProducts = products.filter(p => window.userFavorites.includes(p.id) || window.userFavorites.includes(p._id));
     }
 
     app.innerHTML = `
@@ -324,7 +329,7 @@ function render() {
         : '<p style="text-align:center; padding: 50px; color: #888;">Henüz favori ürününüz yok.</p>'}
       </div>
       ${footerUI}
-     `;
+    `;
     setupCommonInteractions();
   }
   else if (currentRoute.page === 'cart') {
