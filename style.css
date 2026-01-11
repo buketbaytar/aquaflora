@@ -322,3 +322,146 @@ button {
 .product-card img {
     transition: transform 0.5s ease, opacity 0.3s;
 }
+
+/* --- Footer Styling --- */
+.site-footer {
+    background: #001220;
+    padding: var(--spacing-lg) 0 var(--spacing-md);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: auto;
+}
+
+.footer-grid {
+    display: grid;
+    /* 5 Columns: Company(1.5), Cats(1), Corp(1), Social(1), Newsletter(1.2) */
+    grid-template-columns: 1.5fr 1fr 1fr 1fr 1.2fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.footer-section h4 {
+    color: var(--color-white);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    position: relative;
+    padding-bottom: 0.5rem;
+}
+
+.footer-section h4::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 30px;
+    height: 2px;
+    background: var(--color-cyan-glow);
+}
+
+.footer-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-section li {
+    margin-bottom: 0.8rem;
+}
+
+.footer-section a {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.footer-section a:hover {
+    color: var(--color-cyan-glow);
+    padding-left: 5px;
+}
+
+/* Company Info Specific */
+.footer-logo {
+    display: flex;
+    align-items: center;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+}
+
+.footer-desc {
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    max-width: 300px;
+}
+
+.geo-item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Newsletter */
+.newsletter {
+    display: flex;
+    gap: 10px;
+}
+
+.newsletter input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px;
+    border-radius: 6px;
+    color: white;
+}
+
+.newsletter button {
+    background: var(--color-cyan-glow);
+    color: #000;
+    border: none;
+    padding: 0 15px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+/* Social */
+.social-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.social-icon {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Mobile Footer */
+@media (max-width: 768px) {
+    .footer-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 3rem;
+    }
+
+    .footer-section {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding-bottom: 1.5rem;
+    }
+
+    .footer-section:last-child {
+        border-bottom: none;
+    }
+
+    .newsletter {
+        flex-direction: column;
+    }
+
+    .payment-methods {
+        justify-content: center;
+        display: flex;
+    }
+}
