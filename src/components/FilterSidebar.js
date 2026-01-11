@@ -52,6 +52,11 @@ export function setupFilterInteractions(onFilterChange) {
     const priceDisplay = sidebar.querySelector('#price-value');
     const clearBtn = sidebar.querySelector('#clear-filters');
 
+    if (!priceSlider || !priceDisplay || !clearBtn) {
+        console.warn('FilterSidebar elements missing');
+        return;
+    }
+
     const updateFilters = () => {
         const selectedCategories = Array.from(sidebar.querySelectorAll('.category-filter:checked')).map(cb => cb.value);
         const selectedBrands = Array.from(sidebar.querySelectorAll('.brand-filter:checked')).map(cb => cb.value);
