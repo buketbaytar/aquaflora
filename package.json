@@ -13,13 +13,14 @@
     "node": ">=18"
   },
   "devDependencies": {
-    "vite": "^7.2.4"
+    "vite": "^7.3.1"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.1",
     "cookie-session": "^2.1.1",
     "cors": "^2.8.5",
+    "csurf": "^1.11.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
