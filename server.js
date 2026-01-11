@@ -112,7 +112,7 @@ import csrf from 'csurf'; const csrfProtection = csrf({
 app.use(bodyParser.json());
 app.use(cookieSession({
     name: 'session',
-    keys: [process.env.SESSION_SECRET || 'secret'],
+    keys: [process.env.SESSION_SECRET],
     maxAge: 24 * 60 * 60 * 1000,
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -131,10 +131,10 @@ app.get('/api/csrf-token', (req, res) => {
 async function seedAdminUser() {
     if (isDbConnected) {
         try {
-            const email = process.env.ADMIN_EMAIL || 'admin@aquaflora.com'; // Use ENV
+            const email = process.env.ADMIN_EMAIL; // Use ENV
             let user = await User.findOne({ email });
             if (!user) {
-                const password = process.env.ADMIN_PASSWORD || 'admin123'; // Use ENV
+                const password = process.env.ADMIN_PASSWORD; // Use ENV
                 const passwordHash = await bcrypt.hash(password, 10);
                 await User.create({
                     email,
