@@ -365,17 +365,31 @@ button {
 
 .footer-section li {
     margin-bottom: 0.8rem;
+    position: relative;
+    padding-left: 15px;
+    /* Space for bullet */
+}
+
+.footer-section li::before {
+    content: '•';
+    color: rgba(255, 255, 255, 0.4);
+    position: absolute;
+    left: 0;
+    font-size: 1.2rem;
+    line-height: 1;
+    top: -2px;
 }
 
 .footer-section a {
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.95rem;
     transition: all 0.2s;
+    text-decoration: none;
 }
 
 .footer-section a:hover {
     color: var(--color-cyan-glow);
-    padding-left: 5px;
+    /* padding-left: 5px; Removed slide for cleaner bullet list look */
 }
 
 /* Company Info Specific */
@@ -400,43 +414,67 @@ button {
     gap: 10px;
     margin-bottom: 1rem;
     color: rgba(255, 255, 255, 0.8);
+    font-size: 0.95rem;
 }
 
 /* Newsletter */
 .newsletter {
     display: flex;
-    gap: 10px;
+    gap: 0;
 }
 
 .newsletter input {
     flex: 1;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 10px;
-    border-radius: 6px;
+    padding: 12px;
+    border-radius: 6px 0 0 6px;
     color: white;
+    font-size: 0.9rem;
+}
+
+.newsletter input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .newsletter button {
     background: var(--color-cyan-glow);
     color: #000;
     border: none;
-    padding: 0 15px;
-    border-radius: 6px;
-    font-weight: 600;
+    padding: 0 20px;
+    border-radius: 0 6px 6px 0;
+    font-weight: 700;
+    font-size: 0.9rem;
+    min-width: 100px;
+    cursor: pointer;
+    transition: opacity 0.3s;
+}
+
+.newsletter button:hover {
+    opacity: 0.9;
 }
 
 /* Social */
 .social-links {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 .social-icon {
     display: flex;
     align-items: center;
     gap: 10px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.social-icon svg {
+    stroke: currentColor;
+    transition: stroke 0.3s;
+}
+
+.social-icon:hover {
+    color: var(--color-cyan-glow);
 }
 
 /* Mobile Footer */
