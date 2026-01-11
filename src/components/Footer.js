@@ -57,10 +57,18 @@ export function Footer() {
         <div class="footer-section">
            <h4>Takip Edin</h4>
            <div class="social-links">
-             <a href="https://instagram.com/aquaflora" target="_blank" class="social-icon">Instagram</a>
-             <a href="#" class="social-icon">YouTube</a>
-             <a href="#" class="social-icon">TikTok</a>
-             <a href="#" class="social-icon">Facebook</a>
+             <a href="https://www.instagram.com/aquaaflora?igsh=MXB3ejRhdXh1NDY3Ng==" target="_blank" class="social-icon">
+                <span>📷</span> Instagram
+             </a>
+             <a href="#" class="social-icon">
+                <span>▶️</span> YouTube
+             </a>
+             <a href="#" class="social-icon">
+                <span>🎵</span> TikTok
+             </a>
+             <a href="#" class="social-icon">
+                <span>👍</span> Facebook
+             </a>
            </div>
         </div>
         
