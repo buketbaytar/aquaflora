@@ -92,9 +92,7 @@ app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-const csrf = require('csurf');
-
-const csrfProtection = csrf({
+import csrf from 'csurf';const csrfProtection = csrf({
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Must match session cookie settings
