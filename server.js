@@ -41,9 +41,10 @@ const backendUrl = process.env.BACKEND_URL || `http://localhost:${port}`;
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
-    'https://dancing-halva-4bdea7.netlify.app',
-    'https://aquaflora.onrender.com',
-    'https://aquaflora-frontend.onrender.com',
+    'https://aqualora.shop',
+    'https://www.aqualora.shop',
+    'https://aquaflora.pages.dev',
+    'https://aquaflora-api.onrender.com',
     process.env.FRONTEND_URL,
     process.env.CUSTOM_DOMAIN
 ].filter(Boolean);
