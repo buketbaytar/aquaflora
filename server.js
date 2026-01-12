@@ -34,7 +34,7 @@ app.get('/api/debug', (req, res) => {
 app.set('trust proxy', 1);
 const port = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
-const frontendUrl = process.env.FRONTEND_URL || 'https://dancing-halva-4bdea7.netlify.app';
+const frontendUrl = process.env.FRONTEND_URL || 'https://aquaflora.pages.dev';
 const backendUrl = process.env.BACKEND_URL || `http://localhost:${port}`;
 
 // CORS Ayarları - Production ve Local linkleri destekler
