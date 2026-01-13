@@ -8,7 +8,7 @@ export default defineConfig({
     server: {
         proxy: {
             '/api': {
-                target: process.env.VITE_API_URL || 'http://localhost:10000',
+                target: process.env.VITE_API_BASE_URL || 'https://aquaflora-api.onrender.com/',
                 changeOrigin: true,
                 secure: false,
             },
