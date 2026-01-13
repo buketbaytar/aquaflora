@@ -1,4 +1,3 @@
-
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -8,8 +7,8 @@ import mongoose from 'mongoose';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import csrf from 'csurf';
 import { products as seedProducts, categories } from './src/data/products.js';
-// import { initializePayment, retrievePaymentResult } from './server-payment.js'; // Ödeme sistemi geçici olarak devredışı
 import { Category } from './src/models/Category.js';
 import { SubCategory } from './src/models/SubCategory.js';
 import { User } from './src/models/User.js';
@@ -23,33 +22,46 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Trust proxy for Render.com
 app.set('trust proxy', 1);
+
 const port = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
-const frontendUrl = process.env.FRONTEND_URL || 'https://aquaflora.pages.dev';
-const backendUrl = process.env.BACKEND_URL || `http://localhost:${port}`;
 
-// CORS Ayarları - Production ve Local linkleri destekler
+// CORS Ayarları - Güncellenmiş Liste
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
+    'http://localhost:10000',
     'https://aqualora.shop',
     'https://www.aqualora.shop',
-    'https://aquaflora.pages.dev', // Cloudflare Pages default
+    'https://aquaflora.pages.dev',
+    'https://aquaflora-api.onrender.com',
     process.env.FRONTEND_URL,
     process.env.CUSTOM_DOMAIN
 ].filter(Boolean);
 
+console.log('🌐 Allowed CORS Origins:', allowedOrigins);
+
+// CORS Middleware - İLK SIRADA
 app.use(cors({
     origin: (origin, callback) => {
+        // Origin yoksa (direct API call) veya listede varsa izin ver
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            callback(new Error('CORS blocked'));
+            console.warn('⚠️ CORS BLOCKED:', origin);
+            callback(new Error(`CORS blocked: ${origin}`));
         }
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+    exposedHeaders: ['X-CSRF-Token']
 }));
+
+// Preflight requests
+app.options('*', cors());
 
 // Database Connection
 let isDbConnected = false;
@@ -88,32 +100,38 @@ const authLimiter = rateLimit({
     legacyHeaders: false
 });
 
-// CORS Middleware
-app.use(cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
 // Body Parser
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// Session Middleware
+// Session Middleware - Güncellenmiş
 app.use(cookieSession({
     name: 'session',
-    keys: [process.env.SESSION_SECRET],
-    maxAge: 24 * 60 * 60 * 1000,
-    secure: process.env.NODE_ENV === 'production',
+    keys: [process.env.SESSION_SECRET || 'm#?0MzkINzDOxj49V%4cz1d2yD$l0aL0'],
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    secure: isProduction, // HTTPS only in production
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    sameSite: isProduction ? 'none' : 'lax', // Cross-site cookies in production
+    domain: undefined // Let browser handle it
 }));
 
-// CSRF Protection - Session-based
-import csrf from 'csurf';
+// CSRF Protection
 const csrfProtection = csrf({
     cookie: false,
-    sessionKey: 'session'
+    sessionKey: 'session',
+    ignoreMethods: ['GET', 'HEAD', 'OPTIONS']
+});
+
+// CSRF Error Handler
+app.use((err, req, res, next) => {
+    if (err.code === 'EBADCSRFTOKEN') {
+        console.error('❌ CSRF token invalid for:', req.method, req.path);
+        return res.status(403).json({
+            error: 'CSRF token geçersiz',
+            message: 'Lütfen sayfayı yenileyin ve tekrar deneyin'
+        });
+    }
+    next(err);
 });
 
 // Static files
