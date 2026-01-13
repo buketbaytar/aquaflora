@@ -134,13 +134,15 @@ app.use((err, req, res, next) => {
 });
 
 // Static files
-app.use(express.static(__dirname));
+// Static files - PRODUCTION SETUP
+// Serve built frontend files from 'dist'
+app.use(express.static(path.join(__dirname, 'dist')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ==================== ROUTES (CSRF'DEN ÖNCE) ====================
 
-// Root endpoint
-app.get('/', (req, res) => {
+// API Info Endpoint (Moved from / to /api/info to allow frontend at /)
+app.get('/api/info', (req, res) => {
     res.json({
         message: 'Aquaflora API is running',
         version: '1.0.0',
@@ -800,6 +802,9 @@ app.post('/api/admin/subcategories', csrfProtection, isAdmin, async (req, res) =
     }
 });
 
+
+
+
 app.put('/api/admin/subcategories/:id', csrfProtection, isAdmin, async (req, res) => {
     console.log('[PUT /api/admin/subcategories/:id] Request received for:', req.params.id);
     try {
@@ -1046,21 +1051,34 @@ app.delete('/api/admin/products/:id', csrfProtection, isAdmin, async (req, res) 
     }
 });
 
-// ==================== SERVER START ====================
+// ==================== SPA FALLBACK ====================
 
-// Explicitly serve index and urunler for root navigation if needed (though static covers it)
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/urunler.html', (req, res) => res.sendFile(path.join(__dirname, 'urunler.html')));
+// For any request not handled by API, serve index.html
+app.get('*', (req, res) => {
+    // Don't serve HTML for API 404s
+    if (req.path.startsWith('/api')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// ==================== SERVER START ====================
 
 app.listen(port, async () => {
     console.log(`Backend server listening at http://localhost:${port}`);
+    console.log(`Frontend served from 'dist' folder`);
 
     // Seed products after DB connection is established
-    // if (process.env.MONGODB_URI) {
-    // Wait a moment for connection to establish
-    setTimeout(async () => {
-        await seedProductsToDb();
-        await seedAdminUser();
-    }, 2000);
-    // }
+    if (process.env.MONGODB_URI || isDbConnected) {
+        // Wait a moment for connection to establish
+        setTimeout(async () => {
+            await seedProductsToDb();
+            await seedAdminUser();
+        }, 2000);
+    } else {
+        // Memory mode
+        setTimeout(async () => {
+            await seedAdminUser(); // Seed admin to memory
+        }, 1000);
+    }
 });
