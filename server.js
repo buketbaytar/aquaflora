@@ -60,9 +60,6 @@ app.use(cors({
     exposedHeaders: ['X-CSRF-Token']
 }));
 
-// Preflight requests
-app.options('/*', cors(corsOptions));
-
 
 
 // Database Connection
