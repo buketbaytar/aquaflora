@@ -34,30 +34,23 @@ const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:10000',
     'https://aqualora.shop',
-    'https://www.aqualora.shop',
-    'https://aquaflora.pages.dev',
-    'https://aquaflora-api.onrender.com',
-    process.env.FRONTEND_URL,
-    process.env.CUSTOM_DOMAIN
-].filter(Boolean);
+    'https://www.aqualora.shop'
+];
 
 console.log('🌐 Allowed CORS Origins:', allowedOrigins);
 
-// CORS Middleware - İLK SIRADA
+// CORS Middleware
 app.use(cors({
     origin: (origin, callback) => {
-        // Origin yoksa (direct API call) veya listede varsa izin ver
+        // Origin yoksa (server-to-server) veya listede varsa izin ver
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            console.warn('⚠️ CORS BLOCKED:', origin);
-            callback(new Error(`CORS blocked: ${origin}`));
+            console.warn(`⚠️ CORS BLOCKED: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
-    exposedHeaders: ['X-CSRF-Token']
+    credentials: true // Cookie transferi için şart
 }));
 
 

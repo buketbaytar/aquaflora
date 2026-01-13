@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://aquaflora-api.onrender.com';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://aqualora.shop';
 
 async function fetchProductsFromAPI() {
   const res = await fetch(`${API_BASE}/api/products`, { cache: 'no-store' });
