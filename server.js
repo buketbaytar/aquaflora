@@ -448,13 +448,15 @@ app.post('/api/auth/logout', csrfProtection, (req, res) => {
     }
 });
 
+// Auth Check Endpoint
 app.get('/api/auth/me', async (req, res) => {
     console.log('[GET /api/auth/me] Request received');
     try {
         const user = await getUser(req);
         if (!user) {
-            console.log('[GET /api/auth/me] Not authenticated');
-            return res.status(401).json({ error: 'Not authenticated' });
+            console.log('[GET /api/auth/me] Not authenticated (Visitor)');
+            // Return 200 with null user to avoid console 401 errors
+            return res.json({ user: null });
         }
 
         // Mongoose document vs POJO
@@ -463,6 +465,7 @@ app.get('/api/auth/me', async (req, res) => {
         res.json(userData);
     } catch (e) {
         console.error('[GET /api/auth/me] Error:', e.message, e.stack);
+        // Keep 500 for actual server errors
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -526,7 +529,8 @@ app.delete('/api/favorites/:id', csrfProtection, async (req, res) => {
 // Cart Endpoints
 app.get('/api/cart', async (req, res) => {
     const user = await getUser(req);
-    if (!user) return res.status(401).json({ error: 'Not authenticated' });
+    // Return empty cart for guests to avoid 401 console errors
+    if (!user) return res.json([]);
 
     let items = [];
     if (isDbConnected) {
