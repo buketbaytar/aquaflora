@@ -1,5 +1,4 @@
 
-
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -19,17 +18,10 @@ import { Order } from './src/models/Order.js';
 import { Product } from './src/models/Product.js';
 import { Brand } from './src/models/Brand.js';
 
-
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
-
 const app = express();
-app.get('/api/debug', (req, res) => {
-    res.json({ ok: true, time: new Date().toISOString() });
-});
 
 app.set('trust proxy', 1);
 const port = process.env.PORT || 3000;
@@ -79,35 +71,25 @@ if (process.env.MONGODB_URI) {
 
 // Rate Limiting for Auth Endpoints
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // 10 attempts per window
+    windowMs: 15 * 60 * 1000,
+    max: 10,
     message: { error: 'Too many attempts. Please try again later.' },
     standardHeaders: true,
     legacyHeaders: false
 });
 
+// CORS Middleware
 app.use(cors({
     origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
-// Serve ROOT for dev/validation purposes (allows /src imports)
-app.use(express.static(__dirname));
-app.use(express.static(path.join(__dirname, 'public')));
 
-
-// CSRF Protection - Session-based (compatible with cookie-session)
-import csrf from 'csurf';
-const csrfProtection = csrf({
-    cookie: false,
-    sessionKey: 'session'
-});
-
-// CSRF will be applied selectively to POST/PUT/DELETE endpoints only
-// GET endpoints don't need CSRF protection
-
+// Body Parser
 app.use(bodyParser.json());
+
+// Session Middleware
 app.use(cookieSession({
     name: 'session',
     keys: [process.env.SESSION_SECRET],
@@ -117,10 +99,54 @@ app.use(cookieSession({
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
 }));
 
-// CSRF Token Endpoint
-app.get('/api/csrf-token', (req, res) => {
+// CSRF Protection - Session-based
+import csrf from 'csurf';
+const csrfProtection = csrf({
+    cookie: false,
+    sessionKey: 'session'
+});
+
+// Static files
+app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ==================== ROUTES (CSRF'DEN ÖNCE) ====================
+
+// Root endpoint
+app.get('/', (req, res) => {
+    res.json({
+        message: 'Aquaflora API is running',
+        version: '1.0.0',
+        database: isDbConnected,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Health check
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        database: isDbConnected ? 'connected' : 'disconnected',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Debug endpoint
+app.get('/api/debug', (req, res) => {
+    res.json({
+        ok: true,
+        time: new Date().toISOString(),
+        env: process.env.NODE_ENV,
+        database: isDbConnected
+    });
+});
+
+// CSRF Token Endpoint (CSRF koruması YOK - token almak için gerekli)
+app.get('/api/csrf-token', csrfProtection, (req, res) => {
     res.json({ csrfToken: req.csrfToken() });
 });
+
+// ==================== BURADAN SONRA DİĞER ROUTE'LAR ====================
 
 // Admin Seeder
 async function seedAdminUser() {
