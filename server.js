@@ -61,7 +61,9 @@ app.use(cors({
 }));
 
 // Preflight requests
-app.options('*', cors());
+app.options('/*', cors(corsOptions));
+
+
 
 // Database Connection
 let isDbConnected = false;
