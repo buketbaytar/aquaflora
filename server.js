@@ -35,11 +35,21 @@ const allowedOrigins = [
     'http://localhost:3000',
     'https://aqualora.shop',
     'https://www.aqualora.shop',
-    'https://aquaflora.pages.dev',
-    'https://aquaflora-api.onrender.com',
+    'https://aquaflora.pages.dev', // Cloudflare Pages default
     process.env.FRONTEND_URL,
     process.env.CUSTOM_DOMAIN
 ].filter(Boolean);
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('CORS blocked'));
+        }
+    },
+    credentials: true
+}));
 
 // Database Connection
 let isDbConnected = false;
