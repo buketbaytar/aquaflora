@@ -1054,7 +1054,7 @@ app.delete('/api/admin/products/:id', csrfProtection, isAdmin, async (req, res) 
 // ==================== SPA FALLBACK ====================
 
 // For any request not handled by API, serve index.html
-app.get('*', (req, res) => {
+app.get(/(.*)/, (req, res) => {
     // Don't serve HTML for API 404s
     if (req.path.startsWith('/api')) {
         return res.status(404).json({ error: 'API endpoint not found' });
