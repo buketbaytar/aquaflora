@@ -418,7 +418,7 @@ app.post('/api/auth/login', csrfProtection, authLimiter, async (req, res) => {
     }
 });
 
-st('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', (req, res) => {
     // app.po1. Session içeriğini boşalt
     req.session = null;
 
