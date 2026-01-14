@@ -465,30 +465,45 @@ app.get('/api/auth/me', async (req, res) => {
 });
 
 // --- Favorites API ---
+// 1. FAVORİLERİ GETİR (HATA DÜZELTİLDİ)
 app.get('/api/favorites', async (req, res) => {
     const user = await getUser(req);
-    if (!user) return res.status(401).json({ error: 'Not authenticated' });
+
+    // DÜZELTME: Kullanıcı giriş yapmamışsa 401 hatası verme, boş liste ([]) döndür.
+    // Bu sayede site açılışında konsolda kırmızı hata çıkmaz.
+    if (!user) {
+        return res.json([]);
+    }
 
     if (isDbConnected) {
         try {
-            // Populate favorites
+            // Kullanıcının favorilerini veritabanından çek ve doldur (populate)
             const dbUser = await User.findById(user._id).populate('favorites');
-            res.json(dbUser.favorites);
+
+            // Eğer veritabanında kullanıcı bulunamazsa yine boş dön
+            if (!dbUser) return res.json([]);
+
+            res.json(dbUser.favorites || []);
         } catch (e) {
-            res.status(500).json({ error: e.message });
+            console.error('Favorites Fetch Error:', e);
+            res.status(500).json({ error: 'Favoriler alınamadı' });
         }
     } else {
+        // Veritabanı bağlı değilse boş liste dön
         res.json([]);
     }
 });
 
+// 2. FAVORİ EKLE (Burası korumalı kalmalı)
 app.post('/api/favorites/:id', csrfProtection, async (req, res) => {
     console.log('[POST /api/favorites/:id] Request received for product:', req.params.id);
     try {
         const user = await getUser(req);
+        // Giriş yapmamışsa 401 dön (Frontend bunu yakalayıp Login modalını açar)
         if (!user) return res.status(401).json({ error: 'Not authenticated' });
 
         if (isDbConnected) {
+            // $addToSet: Eğer zaten varsa tekrar eklemez (Duplicate önler)
             await User.findByIdAndUpdate(user._id, { $addToSet: { favorites: req.params.id } });
             console.log('[POST /api/favorites/:id] Favorite added:', req.params.id);
             res.json({ success: true });
@@ -496,11 +511,12 @@ app.post('/api/favorites/:id', csrfProtection, async (req, res) => {
             res.status(501).json({ error: 'DB required' });
         }
     } catch (e) {
-        console.error('[POST /api/favorites/:id] Error:', e.message, e.stack);
+        console.error('[POST /api/favorites/:id] Error:', e.message);
         res.status(500).json({ error: e.message });
     }
 });
 
+// 3. FAVORİ SİL (Burası korumalı kalmalı)
 app.delete('/api/favorites/:id', csrfProtection, async (req, res) => {
     console.log('[DELETE /api/favorites/:id] Request received for product:', req.params.id);
     try {
@@ -515,7 +531,7 @@ app.delete('/api/favorites/:id', csrfProtection, async (req, res) => {
             res.status(501).json({ error: 'DB required' });
         }
     } catch (e) {
-        console.error('[DELETE /api/favorites/:id] Error:', e.message, e.stack);
+        console.error('[DELETE /api/favorites/:id] Error:', e.message);
         res.status(500).json({ error: e.message });
     }
 });
