@@ -103,25 +103,24 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // 7. SESSION MIDDLEWARE (EN KRİTİK KISIM)
 app.use(cookieSession({
-    name: 'session',
+    name: 'aqua_session', // <--- YENİ İSİM (Zombilerden kaçış yolu)
     keys: [process.env.SESSION_SECRET || 'gizli_anahtar_degistirin'],
     maxAge: 24 * 60 * 60 * 1000, // 24 saat
 
     // Güvenlik Ayarları
     httpOnly: true,
-    secure: true, // Render HTTPS olduğu için TRUE olmalı
-
-    // Aynı domainde (aqualora.shop) çalıştığımız için 'lax' en iyisidir.
+    secure: true, // Render HTTPS olduğu için TRUE
     sameSite: 'lax',
-
-    // Domain'i null bırakıyoruz, tarayıcı otomatik algılar (En güvenlisi)
-    domain: undefined
+    domain: undefined // Otomatik algıla
 }));
 
 // 8. CSRF PROTECTION
 const csrfProtection = csrf({
-    cookie: false, // CookieSession kullandığımız için false
-    sessionKey: 'session',
+    cookie: false,
+    sessionKey: 'session', // cookie-session kütüphanesi req.session objesini kullanır, burası 'session' kalabilir veya kütüphaneye göre değişir ama genelde req.session altına yazar.
+    // DÜZELTME: cookie-session kullanırken express req.session nesnesini doldurur.
+    // İsim değişikliği sadece tarayıcıda olur. Kod içinde hala req.session kullanırız.
+    // O yüzden buraya dokunmana gerek yok ama garanti olsun diye value fonksiyonunu koruyoruz.
     value: (req) => {
         return req.headers['x-csrf-token'] ||
             req.headers['csrf-token'] ||
@@ -129,19 +128,15 @@ const csrfProtection = csrf({
     }
 });
 
-// Global Hata Yakalayıcı (CSRF Hatası İçin)
-app.use((err, req, res, next) => {
-    if (err.code === 'EBADCSRFTOKEN') {
-        console.error('❌ CSRF Error:', req.method, req.path);
-        // Cookie'yi temizle ki kullanıcı yenileyince düzelmiş olsun
-        req.session = null;
-        return res.status(403).json({
-            error: 'CSRF token geçersiz veya eksik',
-            message: 'Oturumunuz zaman aşımına uğradı, lütfen sayfayı yenileyin.'
-        });
-    }
-    next(err);
-});
+// ==================== IN-MEMORY DATA STORES ====================
+// (Must be declared before seedAdminUser function)
+const memoryUsers = [];
+const memoryCarts = {};
+const memoryOrders = [];
+let memoryProducts = [...seedProducts]; // Copy for in-memory mode
+// Fallback In-memory Categories/Subcategories for demo if DB fail (limited support)
+let memoryCategories = [];
+let memorySubCategories = [];
 
 // ==================== ROUTES ====================
 
@@ -206,14 +201,7 @@ async function seedAdminUser() {
     }
 }
 
-// In-memory Data Stores (Fallback)
-const memoryUsers = [];
-const memoryCarts = {};
-const memoryOrders = [];
-let memoryProducts = [...seedProducts]; // Copy for in-memory mode
-// Fallback In-memory Categories/Subcategories for demo if DB fail (limited support)
-let memoryCategories = [];
-let memorySubCategories = [];
+// (In-memory data stores moved to line 132 to fix reference error)
 
 // Seed Products & Categories to MongoDB
 async function seedProductsToDb() {
@@ -430,26 +418,21 @@ app.post('/api/auth/login', csrfProtection, authLimiter, async (req, res) => {
     }
 });
 
-app.post('/api/auth/logout', (req, res) => {
-    // 1. Session içeriğini boşalt
+st('/api/auth/logout', (req, res) => {
+    // app.po1. Session içeriğini boşalt
     req.session = null;
 
-    // 2. Çerezleri agresif bir şekilde temizle
-    // İhtimalleri kapsayarak siliyoruz:
+    // 2. Yeni isimli çerezleri temizle
+    res.clearCookie('aqua_session');
+    res.clearCookie('aqua_session.sig');
 
-    // Varsayılan silme
+    // 3. Ne olur ne olmaz eski isimli çerezleri de temizlemeye çalış
+
     res.clearCookie('session');
     res.clearCookie('session.sig');
-
-    // Domain spesifik silme (Eski ayarlardan kalanları temizlemek için)
     res.clearCookie('session', { path: '/', domain: '.aqualora.shop' });
-    res.clearCookie('session.sig', { path: '/', domain: '.aqualora.shop' });
 
-    // Tam domain silme
-    res.clearCookie('session', { path: '/', domain: 'aqualora.shop' });
-    res.clearCookie('session.sig', { path: '/', domain: 'aqualora.shop' });
-
-    console.log('🚪 Kullanıcı çıkış yaptı (Session temizlendi).');
+    console.log('🚪 Kullanıcı çıkış yaptı.');
     res.status(200).json({ success: true });
 });
 
@@ -1074,6 +1057,22 @@ app.delete('/api/admin/products/:id', csrfProtection, isAdmin, async (req, res) 
         console.error('[DELETE /api/admin/products/:id] Error:', e.message, e.stack);
         res.status(500).json({ error: 'Failed to delete product' });
     }
+});
+
+// ==================== ERROR HANDLERS ====================
+
+// Global CSRF Error Handler (Must be after routes)
+app.use((err, req, res, next) => {
+    if (err.code === 'EBADCSRFTOKEN') {
+        console.error('❌ CSRF Error:', req.method, req.path);
+        // Cookie'yi temizle ki kullanıcı yenileyince düzelmiş olsun
+        req.session = null;
+        return res.status(403).json({
+            error: 'CSRF token geçersiz veya eksik',
+            message: 'Oturumunuz zaman aşımına uğradı, lütfen sayfayı yenileyin.'
+        });
+    }
+    next(err);
 });
 
 // ==================== SPA FALLBACK ====================
