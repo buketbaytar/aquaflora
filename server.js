@@ -431,16 +431,26 @@ app.post('/api/auth/login', csrfProtection, authLimiter, async (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
-    // 1. Sunucu tarafındaki oturumu öldür
+    // 1. Session içeriğini boşalt
     req.session = null;
 
-    // 2. Tarayıcıya çerezi silmesi için kesin emir ver
-    // (Cookie adı 'session' ve 'session.sig'dir)
-    res.clearCookie('session', { path: '/', domain: undefined });
-    res.clearCookie('session.sig', { path: '/', domain: undefined });
+    // 2. Çerezleri agresif bir şekilde temizle
+    // İhtimalleri kapsayarak siliyoruz:
 
-    console.log('🚪 Kullanıcı çıkış yaptı.');
-    res.status(200).json({ success: true, message: 'Çıkış başarılı' });
+    // Varsayılan silme
+    res.clearCookie('session');
+    res.clearCookie('session.sig');
+
+    // Domain spesifik silme (Eski ayarlardan kalanları temizlemek için)
+    res.clearCookie('session', { path: '/', domain: '.aqualora.shop' });
+    res.clearCookie('session.sig', { path: '/', domain: '.aqualora.shop' });
+
+    // Tam domain silme
+    res.clearCookie('session', { path: '/', domain: 'aqualora.shop' });
+    res.clearCookie('session.sig', { path: '/', domain: 'aqualora.shop' });
+
+    console.log('🚪 Kullanıcı çıkış yaptı (Session temizlendi).');
+    res.status(200).json({ success: true });
 });
 
 // Auth Check Endpoint
