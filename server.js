@@ -430,16 +430,17 @@ app.post('/api/auth/login', csrfProtection, authLimiter, async (req, res) => {
     }
 });
 
-app.post('/api/auth/logout', csrfProtection, (req, res) => {
-    console.log('[POST /api/auth/logout] Request received');
-    try {
-        req.session = null;
-        console.log('[POST /api/auth/logout] Logout successful');
-        res.json({ message: 'Logged out' });
-    } catch (e) {
-        console.error('[POST /api/auth/logout] Error:', e.message, e.stack);
-        res.status(500).json({ error: 'Server error' });
-    }
+app.post('/api/auth/logout', (req, res) => {
+    // 1. Sunucu tarafındaki oturumu öldür
+    req.session = null;
+
+    // 2. Tarayıcıya çerezi silmesi için kesin emir ver
+    // (Cookie adı 'session' ve 'session.sig'dir)
+    res.clearCookie('session', { path: '/', domain: undefined });
+    res.clearCookie('session.sig', { path: '/', domain: undefined });
+
+    console.log('🚪 Kullanıcı çıkış yaptı.');
+    res.status(200).json({ success: true, message: 'Çıkış başarılı' });
 });
 
 // Auth Check Endpoint

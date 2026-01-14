@@ -1,5 +1,5 @@
 // Eğer .env dosyasında bir URL varsa onu kullan, yoksa direkt canlı domaini kullan
-// Bu sayede hem localhost'ta hem sunucuda sorunsuz çalışır.
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://aqualora.shop';
 
 console.log('🔗 API Base URL:', API_BASE_URL);
@@ -9,11 +9,10 @@ export const Auth = {
     listeners: [],
     csrfToken: null,
 
-    // 1. ADIM: CSRF TOKEN ALMA (Düzeltildi)
+    // 1. ADIM: CSRF TOKEN ALMA
     async fetchCsrfToken() {
         try {
-            // BURASI ÇOK ÖNEMLİ: Token isterken de credentials: 'include' olmalı
-            // ki sunucu "session" çerezini tarayıcıya o an yapıştırsın.
+            // Credentials: include ŞARTTIR. Yoksa session cookie gelmez/gitmez.
             const res = await fetch(`${API_BASE_URL}/api/csrf-token`, {
                 credentials: 'include'
             });
@@ -21,21 +20,20 @@ export const Auth = {
             if (res.ok) {
                 const data = await res.json();
                 this.csrfToken = data.csrfToken;
-                // console.log('🔒 CSRF Token fetched:', this.csrfToken);
+                // console.log('🔒 CSRF Token fetched');
             }
         } catch (e) {
             console.warn('⚠️ Failed to fetch CSRF token:', e);
         }
     },
 
-    // 2. ADIM: OTURUM KONTROLÜ
+    // 2. ADIM: OTURUM KONTROLÜ (Sayfa yenilenince kimim ben?)
     async checkSession() {
-        // Token yoksa önce onu al
         if (!this.csrfToken) await this.fetchCsrfToken();
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-                credentials: 'include',
+                credentials: 'include', // Tarayıcıdaki çerezi sunucuya gönderir
                 headers: {
                     'Content-Type': 'application/json'
                 }
@@ -67,9 +65,9 @@ export const Auth = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': this.csrfToken // Token Header'da gidiyor
+                    'X-CSRF-Token': this.csrfToken // Güvenlik anahtarı
                 },
-                credentials: 'include', // Cookie gönderimi için şart
+                credentials: 'include', // Çerez set edilmesi için ŞART
                 body: JSON.stringify({ email, password })
             });
 
@@ -78,7 +76,6 @@ export const Auth = {
                 this.notify();
                 return { success: true };
             } else {
-                // Hata mesajını güvenli bir şekilde al
                 let errorMsg = 'Giriş başarısız';
                 try {
                     const err = await res.json();
@@ -126,30 +123,38 @@ export const Auth = {
         }
     },
 
-    // 5. ADIM: ÇIKIŞ YAPMA
+    // 5. ADIM: ÇIKIŞ YAPMA (DÜZELTİLDİ VE GÜÇLENDİRİLDİ)
     async logout() {
+        // Token yoksa bile almaya çalış, varsa kullan
         if (!this.csrfToken) await this.fetchCsrfToken();
+
         try {
+            // Sunucuya "Oturumu Sil" isteği at
             await fetch(`${API_BASE_URL}/api/auth/logout`, {
                 method: 'POST',
-                credentials: 'include',
+                credentials: 'include', // Bu çok önemli, sunucu hangi çerezi sileceğini bilsin
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': this.csrfToken
                 }
             });
         } catch (e) {
-            console.warn('Logout failed (backend offline)');
+            console.warn('Logout fetch failed (backend offline?), clearing local state anyway.');
         }
+
+        // Sunucudan cevap gelse de gelmese de:
+
+        // 1. Yerel kullanıcı verisini temizle
         this.user = null;
         this.notify();
-        // Sayfayı yenilemek iyi bir pratiktir
-        window.location.reload();
+
+        // 2. Sayfayı ANA SAYFAYA yönlendir. 
+        // Bu işlem tarayıcıyı çerezleri yeniden kontrol etmeye zorlar ve temizliği garantiler.
+        window.location.href = '/';
     },
 
     subscribe(listener) {
         this.listeners.push(listener);
-        // Abone olunduğu an mevcut durumu bildir
         if (this.user) listener(this.user);
     },
 
