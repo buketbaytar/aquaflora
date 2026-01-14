@@ -764,7 +764,36 @@
             document.getElementById('product-modal').classList.add('active');
         }
 
-        // ... openProductModal helpers ...
+        function onProductCategoryChange(selectedSubId = null) {
+            const catId = document.getElementById('product-categoryId').value;
+            const subSelect = document.getElementById('product-subCategoryId');
+
+            if (!catId) {
+                subSelect.innerHTML = '<option value="">Önce kategori seçiniz</option>';
+                return;
+            }
+
+            const associatedSubs = subcategories.filter(s => {
+                const sCatId = typeof s.categoryId === 'string' ? s.categoryId : s.categoryId._id;
+                return sCatId === catId;
+            });
+
+            subSelect.innerHTML = '<option value="">Seçiniz...</option>' +
+                associatedSubs.map(s => `<option value="${s._id}">${s.name}</option>`).join('');
+
+            if (selectedSubId) subSelect.value = selectedSubId;
+        }
+
+        async function editProduct(id) {
+            const product = products.find(p => (p._id || p.id) == id);
+            if (product) openProductModal(product);
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('Bu ürünü silmek istediğinize emin misiniz?')) return;
+            const res = await fetchAPI(`/api/admin/products/${id}`, { method: 'DELETE' });
+            if (res && res.ok) { showToast('Ürün silindi', 'success'); loadProducts(); }
+        }
 
         document.getElementById('product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
