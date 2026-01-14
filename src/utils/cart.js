@@ -25,19 +25,25 @@ export const Cart = {
         }
     },
 
-    async add(product) {
+    async add(product, selectedVariant = null) {
         try {
+            const body = { productId: product.id };
+            if (selectedVariant) {
+                body.selectedVariant = selectedVariant;
+            }
+
             const res = await fetch(`${API_BASE_URL}/api/cart/add`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ productId: product.id })
+                body: JSON.stringify(body)
             });
 
             if (res.ok) {
                 this.items = await res.json();
                 this.notify();
-                this.showToast(`${product.name} sepete eklendi.`);
+                const variantText = selectedVariant ? ` (Beden: ${selectedVariant})` : '';
+                this.showToast(`${product.name}${variantText} sepete eklendi.`);
             } else {
                 console.error('Failed to add to cart');
             }

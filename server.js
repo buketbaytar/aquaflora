@@ -268,6 +268,7 @@ async function seedProductsToDb() {
                     }
 
                     await Product.create({
+                        id: p.id,
                         name: p.name,
                         category: p.category, // Keep for legacy
                         subCategory: p.subCategory, // Keep for legacy
@@ -279,8 +280,10 @@ async function seedProductsToDb() {
                         image: p.image,
                         video: p.video,
                         specs: p.specs,
+                        variants: p.variants || [],
+                        stock: p.stock !== undefined ? p.stock : (p.variants?.length > 0 ? 0 : 20), // Default 20 for non-variant if not specified
                         active: true,
-                        isFeatured: false // Default
+                        isFeatured: p.isFeatured || false
                     });
                 }
                 console.log('✅ Products seeded linked to categories.');
@@ -559,7 +562,14 @@ app.get('/api/cart', async (req, res) => {
 
     const cartItems = items.map(item => {
         const product = allProducts.find(p => p._id.toString() === item.productId.toString() || p.id == item.productId);
-        return product ? { ...product } : null;
+        if (product) {
+            return {
+                ...product,
+                selectedVariant: item.selectedVariant, // Include variant in cart response
+                quantity: item.quantity || 1
+            };
+        }
+        return null;
     }).filter(Boolean);
 
     res.json(cartItems);
@@ -571,25 +581,54 @@ app.post('/api/cart/add', csrfProtection, async (req, res) => {
         const user = await getUser(req);
         if (!user) return res.status(401).json({ error: 'Not authenticated' });
 
-        const { productId } = req.body;
+        const { productId, selectedVariant } = req.body;
         if (!productId) return res.status(400).json({ error: 'Product ID required' });
 
         let items = [];
 
         if (isDbConnected) {
-            console.log('[POST /api/cart/add] Adding to DB cart');
+            console.log('[POST /api/cart/add] Adding to DB cart', selectedVariant ? `(Variant: ${selectedVariant})` : '');
             let cart = await Cart.findOne({ userId: user._id });
             if (!cart) {
                 cart = new Cart({ userId: user._id, items: [] });
             }
 
-            cart.items.push({ productId: productId });
+            // Check if item with same productId AND selectedVariant already exists
+            const existingItem = cart.items.find(item =>
+                item.productId === parseInt(productId) &&
+                item.selectedVariant === (selectedVariant || undefined)
+            );
+
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.items.push({
+                    productId: parseInt(productId),
+                    selectedVariant: selectedVariant || undefined,
+                    quantity: 1
+                });
+            }
+
             await cart.save();
             items = cart.items;
         } else {
             console.log('[POST /api/cart/add] Adding to memory cart');
             if (!memoryCarts[user.id]) memoryCarts[user.id] = [];
-            memoryCarts[user.id].push({ productId: parseInt(productId) });
+
+            const existingItem = memoryCarts[user.id].find(item =>
+                item.productId === parseInt(productId) &&
+                item.selectedVariant === (selectedVariant || undefined)
+            );
+
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                memoryCarts[user.id].push({
+                    productId: parseInt(productId),
+                    selectedVariant: selectedVariant || undefined,
+                    quantity: 1
+                });
+            }
             items = memoryCarts[user.id];
         }
 
@@ -597,7 +636,14 @@ app.post('/api/cart/add', csrfProtection, async (req, res) => {
         const allProducts = await getProducts(true);
         const cartItems = items.map(item => {
             const product = allProducts.find(p => p._id?.toString() === item.productId.toString() || p.id == item.productId);
-            return product ? { ...product } : null;
+            if (product) {
+                return {
+                    ...product,
+                    selectedVariant: item.selectedVariant, // Include variant in response
+                    quantity: item.quantity || 1 // Include quantity
+                };
+            }
+            return null;
         }).filter(Boolean);
 
         console.log('[POST /api/cart/add] Product added to cart, total items:', cartItems.length);
@@ -605,6 +651,108 @@ app.post('/api/cart/add', csrfProtection, async (req, res) => {
     } catch (e) {
         console.error('[POST /api/cart/add] Error:', e.message, e.stack);
         res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// --- Order Endpoints ---
+
+// Create Order with Stock Control
+app.post('/api/orders', csrfProtection, async (req, res) => {
+    console.log('[POST /api/orders] Request received - Order Creation');
+    try {
+        const user = await getUser(req);
+        if (!user) return res.status(401).json({ error: 'Not authenticated' });
+
+        // In a real app, items would come from cart. For this task, we'll fetch the user's cart.
+        if (!isDbConnected) return res.status(501).json({ error: 'Database required for orders' });
+
+        const cart = await Cart.findOne({ userId: user._id });
+        if (!cart || cart.items.length === 0) {
+            return res.status(400).json({ error: 'Sepetiniz boş' });
+        }
+
+        const orderItems = [];
+        let totalAmount = 0;
+
+        // 1. STOK KONTROL ALGORİTMASI
+        for (const item of cart.items) {
+            const product = await Product.findOne({ $or: [{ id: item.productId }, { _id: item.productId }] });
+
+            if (!product) {
+                return res.status(404).json({ error: `Ürün bulunamadı: ${item.productId}` });
+            }
+
+            const quantity = item.quantity || 1;
+
+            // Eğer ürünün varyantları varsa
+            if (product.variants && product.variants.length > 0) {
+                if (!item.selectedVariant) {
+                    return res.status(400).json({ error: `${product.name} için beden seçilmelidir.` });
+                }
+
+                const variant = product.variants.find(v => v.size === item.selectedVariant);
+                if (!variant) {
+                    return res.status(400).json({ error: `Geçersiz beden: ${item.selectedVariant}` });
+                }
+
+                if (variant.stock < quantity) {
+                    return res.status(400).json({ error: `${product.name} (${variant.size} Beden) için yeterli stok yok. Mevcut: ${variant.stock}` });
+                }
+            } else {
+                // Standart ürün (Varyant yok)
+                if (product.stock < quantity) {
+                    return res.status(400).json({ error: `${product.name} için yeterli stok yok. Mevcut: ${product.stock}` });
+                }
+            }
+
+            orderItems.push({
+                productId: product.id || product._id,
+                name: product.name,
+                price: product.price,
+                selectedVariant: item.selectedVariant,
+                quantity: quantity
+            });
+            totalAmount += product.price * quantity;
+        }
+
+        // 2. STOK DÜŞÜRME VE SİPARİŞ OLUŞTURMA
+        // Atomik güncelleme için transaction kullanımı idealdir ama basitlik için loop ile yapıyoruz.
+        for (const item of cart.items) {
+            if (item.selectedVariant) {
+                // Varyant stoğunu düşür
+                await Product.updateOne(
+                    { $or: [{ id: item.productId }, { _id: item.productId }], "variants.size": item.selectedVariant },
+                    { $inc: { "variants.$.stock": -(item.quantity || 1) } }
+                );
+            } else {
+                // Ana stoğu düşür
+                await Product.updateOne(
+                    { $or: [{ id: item.productId }, { _id: item.productId }] },
+                    { $inc: { stock: -(item.quantity || 1) } }
+                );
+            }
+        }
+
+        // Siparişi kaydet
+        const order = new Order({
+            userId: user._id,
+            paymentId: 'TEST-' + Date.now(),
+            items: orderItems,
+            totalAmount: totalAmount,
+            status: 'paid' // Test için direkt paid yapıyoruz
+        });
+        await order.save();
+
+        // Sepeti temizle
+        cart.items = [];
+        await cart.save();
+
+        console.log('✅ Sipariş başarıyla oluşturuldu:', order._id);
+        res.json({ success: true, orderId: order._id, message: 'Siparişiniz başarıyla alındı.' });
+
+    } catch (e) {
+        console.error('[POST /api/orders] Sipariş Hatası:', e.message);
+        res.status(500).json({ error: 'Sipariş oluşturulurken bir hata oluştu.' });
     }
 });
 

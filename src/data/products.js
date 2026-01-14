@@ -9,7 +9,12 @@ export const products = [
         price: "18.500 ₺",
         image: "https://images.unsplash.com/photo-1570174084152-32aeb4e7c7a8?q=80&w=2070&auto=format&fit=crop",
         video: "https://videos.pexels.com/video-files/4553259/4553259-sd_640_360_25fps.mp4",
-        specs: { material: "Cordura 1000D", weight: "3.2kg", lift: "150N" }
+        specs: { material: "Cordura 1000D", weight: "3.2kg", lift: "150N" },
+        variants: [
+            { size: "S", stock: 5 },
+            { size: "M", stock: 8 },
+            { size: "L", stock: 0 } // Out of stock for testing
+        ]
     },
     {
         id: 102,
@@ -20,7 +25,12 @@ export const products = [
         price: "24.000 ₺",
         image: "https://images.unsplash.com/photo-1533234978939-9a5cf44c062c?q=80&w=1968&auto=format&fit=crop", // Watch placeholder
         video: "https://videos.pexels.com/video-files/855018/855018-hd_1280_720_30fps.mp4",
-        specs: { display: "Color MIP", depth: "100m", connectivity: "Bluetooth" }
+        specs: { display: "Color MIP", depth: "100m", connectivity: "Bluetooth" },
+        variants: [
+            { size: "S", stock: 3 },
+            { size: "M", stock: 7 },
+            { size: "L", stock: 4 }
+        ]
     },
     {
         id: 103,
@@ -55,7 +65,13 @@ export const products = [
         price: "7.800 ₺",
         image: "https://images.unsplash.com/photo-1544551763-46a8723ba3f9?q=80&w=2070&auto=format&fit=crop",
         video: "https://videos.pexels.com/video-files/7565439/7565439-sd_640_360_25fps.mp4",
-        specs: { thickness: "5mm", type: "Open Cell", camouflage: "3D Rock" }
+        specs: { thickness: "5mm", type: "Open Cell", camouflage: "3D Rock" },
+        variants: [
+            { size: "S", stock: 6 },
+            { size: "M", stock: 0 }, // Out of stock for testing
+            { size: "L", stock: 10 },
+            { size: "XL", stock: 2 }
+        ]
     },
 
     // --- Yüzme ---

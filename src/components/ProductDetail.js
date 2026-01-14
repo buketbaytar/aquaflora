@@ -1,6 +1,9 @@
 import { escapeHTML } from '../utils/sanitize.js';
 
 export function ProductDetail(product) {
+  // Check if product has variants
+  const hasVariants = product.variants && product.variants.length > 0;
+
   return `
     <div class="product-detail-page fade-in-up">
       <div class="container pdp-grid">
@@ -31,6 +34,25 @@ export function ProductDetail(product) {
              <p>${escapeHTML(product.description || 'Profesyonel su altı deneyimi için tasarlandı. Son teknoloji malzemeler ve üstün ergonomi ile performansınızı zirveye taşıyın.')}</p>
           </div>
 
+          ${hasVariants ? `
+          <!-- Variant Selector -->
+          <div class="variant-selector">
+            <h4>Beden Seçin:</h4>
+            <div class="size-buttons">
+              ${product.variants.map(v => `
+                <button 
+                  class="size-btn ${v.stock === 0 ? 'disabled' : ''}" 
+                  data-size="${v.size}" 
+                  data-stock="${v.stock}"
+                  ${v.stock === 0 ? 'disabled' : ''}
+                >
+                  ${v.size} ${v.stock === 0 ? '(Tükendi)' : `(${v.stock} adet)`}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
+
           ${product.specs ? `
           <div class="pdp-specs glass-panel">
             <h3>Teknik Özellikler</h3>
@@ -40,8 +62,8 @@ export function ProductDetail(product) {
           </div>` : ''}
 
           <div class="pdp-actions">
-            <button class="add-cart-btn large pulse-glow">
-              SEPETE EKLE
+            <button class="add-cart-btn large pulse-glow" ${hasVariants ? 'disabled' : ''} data-product-id="${product.id || product._id}">
+              ${hasVariants ? 'ÖNCE BEDEN SEÇİN' : 'SEPETE EKLE'}
             </button>
             <button class="favorite-btn icon-btn">♥</button>
           </div>

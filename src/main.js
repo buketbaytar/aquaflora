@@ -106,7 +106,11 @@ document.addEventListener('click', (e) => {
     if (btn.classList.contains('large')) {
       const id = parseInt(currentRoute.params.id);
       const p = products.find(prod => (prod._id === id || prod.id === id));
-      if (p) Cart.add(p);
+      if (p) {
+        // Check if product has variants and if a variant is selected
+        const selectedVariant = document.querySelector('.size-btn.active')?.dataset.size;
+        Cart.add(p, selectedVariant);
+      }
       return;
     }
 
@@ -118,6 +122,28 @@ document.addEventListener('click', (e) => {
     }
 
     if (productToAdd) Cart.add(productToAdd);
+  }
+
+  // Variant Size Button Click (Product Detail Page)
+  if (e.target.closest('.size-btn')) {
+    const sizeBtn = e.target.closest('.size-btn');
+
+    // Don't allow selecting out-of-stock variants
+    if (sizeBtn.disabled) return;
+
+    // Remove active from all size buttons
+    document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('active'));
+
+    // Add active to clicked button
+    sizeBtn.classList.add('active');
+
+    // Enable the "Add to Cart" button
+    const addCartBtn = document.querySelector('.add-cart-btn.large');
+    if (addCartBtn) {
+      addCartBtn.disabled = false;
+      addCartBtn.textContent = 'SEPETE EKLE';
+      addCartBtn.classList.add('pulse-glow');
+    }
   }
 
   // Favorite Button Click (Card & Detail)

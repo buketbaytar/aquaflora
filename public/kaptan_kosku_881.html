@@ -374,6 +374,32 @@
                     <label>Fiyat (TL) *</label>
                     <input type="number" id="product-price" step="0.01" required>
                 </div>
+
+                <!-- Stock & Variants Section -->
+                <div class="form-group"
+                    style="padding: 15px; border: 1px solid #2a2a4a; border-radius: 6px; background: rgba(0,0,0,0.2);">
+                    <label
+                        style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 15px; font-weight: bold; color: #4cc9f0;">
+                        <input type="checkbox" id="product-hasVariants" onchange="toggleVariantMode()"
+                            style="width: auto;">
+                        Bu ürün bedenli/varyantlı mı?
+                    </label>
+
+                    <!-- Standard Stock Input -->
+                    <div id="standard-stock-group">
+                        <label>Stok Adedi *</label>
+                        <input type="number" id="product-stock" min="0" placeholder="Örn: 50">
+                    </div>
+
+                    <!-- Variant Editor -->
+                    <div id="variant-editor" style="display: none;">
+                        <label style="margin-bottom: 10px; display: block;">Varyantlar (Beden ve Stok)</label>
+                        <div id="variants-container"></div>
+                        <button type="button" class="btn btn-secondary" onclick="addVariantRow()"
+                            style="margin-top: 10px; font-size: 0.8rem;">+ Varyant Ekle</button>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Görsel URL</label>
                     <input type="url" id="product-image">
@@ -666,6 +692,41 @@
                 brands.map(b => `<option value="${b._id}">${b.name}</option>`).join('');
         }
 
+        // --- Varyant Yönetimi ---
+        function toggleVariantMode() {
+            const hasVariants = document.getElementById('product-hasVariants').checked;
+            const standardStock = document.getElementById('standard-stock-group');
+            const variantEditor = document.getElementById('variant-editor');
+            const variantsContainer = document.getElementById('variants-container');
+
+            if (hasVariants) {
+                standardStock.style.display = 'none';
+                variantEditor.style.display = 'block';
+                // Eğer hiç satır yoksa bir tane ekle
+                if (variantsContainer.children.length === 0) {
+                    addVariantRow();
+                }
+            } else {
+                standardStock.style.display = 'block';
+                variantEditor.style.display = 'none';
+            }
+        }
+
+        function addVariantRow(size = '', stock = '') {
+            const container = document.getElementById('variants-container');
+            const row = document.createElement('div');
+            row.className = 'variant-row';
+            row.style.display = 'flex';
+            row.style.gap = '10px';
+            row.style.marginBottom = '10px';
+            row.innerHTML = `
+                <input type="text" class="var-size" placeholder="Beden (S, M, 38 vb.)" value="${size}" style="flex:1">
+                <input type="number" class="var-stock" placeholder="Stok" value="${stock}" min="0" style="flex:1">
+                <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 5px 10px;">X</button>
+            `;
+            container.appendChild(row);
+        }
+
         // --- Ürün İşlemleri ---
         function openProductModal(product = null) {
             populateCategoryDropdowns();
@@ -682,6 +743,20 @@
             document.getElementById('product-active').checked = product?.active !== false;
             document.getElementById('product-featured').checked = !!product?.isFeatured;
 
+            // Varyant & Stok Doldurma
+            const hasVariants = product?.variants && product.variants.length > 0;
+            document.getElementById('product-hasVariants').checked = hasVariants;
+            document.getElementById('standard-stock-group').style.display = hasVariants ? 'none' : 'block';
+            document.getElementById('variant-editor').style.display = hasVariants ? 'block' : 'none';
+            document.getElementById('variants-container').innerHTML = ''; // Temizle
+
+            if (hasVariants) {
+                product.variants.forEach(v => addVariantRow(v.size, v.stock));
+                document.getElementById('product-stock').value = '';
+            } else {
+                document.getElementById('product-stock').value = product?.stock || 0;
+            }
+
             const catId = product?.categoryId?._id || product?.categoryId || '';
             document.getElementById('product-categoryId').value = catId;
             onProductCategoryChange(product?.subCategoryId?._id || product?.subCategoryId);
@@ -689,51 +764,61 @@
             document.getElementById('product-modal').classList.add('active');
         }
 
-        function onProductCategoryChange(selectedSubId = null) {
-            const catId = document.getElementById('product-categoryId').value;
-            const subSelect = document.getElementById('product-subCategoryId');
-
-            if (!catId) {
-                subSelect.innerHTML = '<option value="">Önce kategori seçiniz</option>';
-                return;
-            }
-
-            const associatedSubs = subcategories.filter(s => {
-                const sCatId = typeof s.categoryId === 'string' ? s.categoryId : s.categoryId._id;
-                return sCatId === catId;
-            });
-
-            subSelect.innerHTML = '<option value="">Seçiniz...</option>' +
-                associatedSubs.map(s => `<option value="${s._id}">${s.name}</option>`).join('');
-
-            if (selectedSubId) subSelect.value = selectedSubId;
-        }
-
-        async function editProduct(id) {
-            const product = products.find(p => (p._id || p.id) == id);
-            if (product) openProductModal(product);
-        }
-
-        async function deleteProduct(id) {
-            if (!confirm('Bu ürünü silmek istediğinize emin misiniz?')) return;
-            const res = await fetchAPI(`/api/admin/products/${id}`, { method: 'DELETE' });
-            if (res && res.ok) { showToast('Ürün silindi', 'success'); loadProducts(); }
-        }
+        // ... openProductModal helpers ...
 
         document.getElementById('product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('product-id').value;
+
+            // Verileri Topla
+            const name = document.getElementById('product-name').value;
+            const price = parseFloat(document.getElementById('product-price').value);
+            const isVariant = document.getElementById('product-hasVariants').checked;
+
+            let stock = 0;
+            let variants = [];
+
+            if (isVariant) {
+                // Varyantları topla
+                const rows = document.querySelectorAll('.variant-row');
+                rows.forEach(row => {
+                    const size = row.querySelector('.var-size').value.trim();
+                    const sQty = parseInt(row.querySelector('.var-stock').value) || 0;
+                    if (size) {
+                        variants.push({ size, stock: sQty });
+                    }
+                });
+
+                if (variants.length === 0) {
+                    alert('HATA: Bedenli ürün seçtiniz ancak hiç beden girişi yapmadınız!');
+                    return;
+                }
+                // Varyantlı ürünlerde ana stok genellikle 0 veya toplam olarak tutulabilir.
+                // Biz toplamı yazalım ki listelerde "0" görünmesin (tercihen).
+                stock = variants.reduce((sum, v) => sum + v.stock, 0);
+
+            } else {
+                // Standart Stok
+                stock = parseInt(document.getElementById('product-stock').value);
+                if (isNaN(stock) || stock < 0) {
+                    alert('Lütfen geçerli bir stok adedi giriniz.');
+                    return;
+                }
+            }
+
             const data = {
-                name: document.getElementById('product-name').value,
+                name,
                 brandId: document.getElementById('product-brandId').value,
-                price: parseFloat(document.getElementById('product-price').value),
+                price,
                 image: document.getElementById('product-image').value,
                 video: document.getElementById('product-video').value,
                 description: document.getElementById('product-description').value,
                 active: document.getElementById('product-active').checked,
                 isFeatured: document.getElementById('product-featured').checked,
                 categoryId: document.getElementById('product-categoryId').value,
-                subCategoryId: document.getElementById('product-subCategoryId').value || null
+                subCategoryId: document.getElementById('product-subCategoryId').value || null,
+                stock: stock,
+                variants: variants
             };
 
             const method = id ? 'PUT' : 'POST';

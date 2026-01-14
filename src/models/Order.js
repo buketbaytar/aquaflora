@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
 
 const orderItemSchema = new mongoose.Schema({
-    id: String,
-    name: String,
-    price: Number,
-    category: String
+    productId: { type: Number, required: true },
+    name: { type: String, required: true },
+    price: { type: Number, required: true },
+    selectedVariant: { type: String }, // Track size/variant ordered
+    quantity: { type: Number, default: 1 }
 });
 
 const orderSchema = new mongoose.Schema({

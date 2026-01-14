@@ -21,6 +21,14 @@ const productSchema = new mongoose.Schema({
     specs: { type: mongoose.Schema.Types.Mixed },
     views: { type: Number, default: 0 },
     active: { type: Boolean, default: true },
+
+    // Stock Management
+    stock: { type: Number, default: 0 }, // Main stock for non-variant products
+    variants: [{
+        size: { type: String, required: true },
+        stock: { type: Number, required: true, default: 0 }
+    }], // Variant-based stock (e.g., S, M, L with individual stock counts)
+
     createdAt: { type: Date, default: Date.now }
 });
 

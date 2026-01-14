@@ -43,17 +43,20 @@ export function CartPage() {
             
             <div class="cart-layout">
                 <div class="cart-items glass-panel">
-                    ${items.map(item => `
+                    ${items.map(item => {
+        const variantDisplay = item.selectedVariant ? ` - Beden: ${item.selectedVariant}` : '';
+        return `
                         <div class="cart-item">
                             <img src="${item.image}" alt="${item.name}" class="cart-item-img">
                             <div class="cart-item-details">
-                                <h3>${item.name}</h3>
+                                <h3>${item.name}${variantDisplay}</h3>
                                 <p class="category">${item.category || ''}</p>
-                                <p class="price">${item.price}</p>
+                                <p class="price">${item.price}${item.quantity > 1 ? ` x ${item.quantity}` : ''}</p>
                             </div>
                             <button class="remove-btn text-danger" onclick="alert('Not implemented yet')">🗑️</button>
                         </div>
-                    `).join('')}
+                        `;
+    }).join('')}
                 </div>
 
                 <div class="cart-summary glass-panel">
@@ -82,10 +85,7 @@ export function CartPage() {
                                 </span>
                             </label>
                         </div>
-                        <button id="checkout-btn" class="btn checkout-btn" disabled style="opacity: 0.5; cursor: not-allowed;">Siparişi Tamamla (Bakımda)</button>
-                        <p class="maintenance-hint" style="color: #ffcc00; font-size: 0.85rem; margin-top: 10px; text-align: center;">
-                            ⚠️ Ödeme sistemi yakında aktif olacaktır.
-                        </p>
+                        <button id="checkout-btn" class="btn checkout-btn" disabled style="opacity: 0.5; cursor: not-allowed;">Siparişi Tamamla</button>
                     ` : `
                         <button class="btn checkout-btn" disabled>Ödeme için Giriş Yapın</button>
                         <p class="small-hint">Lütfen devam etmek için giriş yapınız.</p>
@@ -100,25 +100,35 @@ export function setupCartInteractions() {
     const checkoutBtn = document.querySelector('#checkout-btn');
     const contractCheckbox = document.querySelector('#contract-approval');
 
-    // Checkbox kontrolü ekle
+    // Initial State Check
+    if (checkoutBtn && contractCheckbox) {
+        checkoutBtn.disabled = !contractCheckbox.checked;
+        if (!contractCheckbox.checked) {
+            checkoutBtn.style.opacity = '0.5';
+            checkoutBtn.style.cursor = 'not-allowed';
+        }
+    }
+
+    // Checkbox Event Listener
     if (contractCheckbox && checkoutBtn) {
         contractCheckbox.addEventListener('change', (e) => {
             if (e.target.checked) {
                 checkoutBtn.style.opacity = '1';
                 checkoutBtn.style.cursor = 'pointer';
-                // Bakımda olduğu için disabled kalıyor, ama normal durumda:
-                // checkoutBtn.disabled = false;
+                checkoutBtn.disabled = false;
             } else {
                 checkoutBtn.style.opacity = '0.5';
                 checkoutBtn.style.cursor = 'not-allowed';
-                // checkoutBtn.disabled = true;
+                checkoutBtn.disabled = true;
             }
         });
     }
 
     if (checkoutBtn) {
         checkoutBtn.addEventListener('click', async () => {
-            // Önce checkbox kontrolü yap
+            if (checkoutBtn.disabled) return;
+
+            // Double check
             if (contractCheckbox && !contractCheckbox.checked) {
                 alert('⚠️ Lütfen Mesafeli Satış Sözleşmesini okuyup onaylayınız.');
                 return;
@@ -128,48 +138,30 @@ export function setupCartInteractions() {
             checkoutBtn.textContent = 'İşleniyor...';
 
             try {
-                const res = await fetch(`${API_BASE_URL}/api/payment/initialize`, {
+                // TEST MODE: Direct Order Creation to verify Stock Logic
+                const res = await fetch(`${API_BASE_URL}/api/orders`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
                 });
 
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.status === 'success') {
-                        // Render iyzico form
-                        // iyzico returns HTML content to be embedded.
-                        // Ideally we replace the body or a specific div.
-                        document.querySelector('#main-content').innerHTML = data.htmlContent + '<div id="iyzipay-checkout-form" class="responsive"></div>';
-                        // iyzico usually injects script tags. We might need to eval them or trust browser.
-                        // Actually iyzico html content includes script tag.
-                        // Inserting HTML with innerHTML usually DOES NOT execute scripts for security.
-                        // We need to extract script and run it.
-                        // But wait, standard iyzico checkout form is just a big script block or iframe logic?
-                        // Let's check `data.htmlContent`.
-                        // If it contains <script>, we need a helper.
+                const data = await res.json();
 
-                        // BUT for simplicity, we can try to write it to document.write (bad practice) or appendChild script.
-                        // Let's presume we might need to handle this carefully.
-                        // A common fix: create a range context.
-                        const range = document.createRange();
-                        range.setStart(document.body, 0);
-                        const fragment = range.createContextualFragment(data.htmlContent);
-                        document.querySelector('#main-content').innerHTML = ''; // clear
-                        document.querySelector('#main-content').appendChild(fragment);
-                    } else {
-                        alert('Payment Init Failed: ' + data.errorMessage);
-                        checkoutBtn.disabled = false;
-                        checkoutBtn.textContent = 'Siparişi Tamamla';
-                    }
+                if (res.ok) {
+                    Cart.items = []; // Clear local cart
+                    Cart.notify();
+                    alert(`✅ Siparişiniz Başarıyla Alındı!\nSipariş No: ${data.orderId}\n\nStoklar güncellendi.`);
+                    window.location.href = '/';
                 } else {
-                    const error = await res.json();
-                    alert('Error: ' + error.error);
+                    // Show Backend Error (e.g., Stock Insufficient)
+                    alert(`❌ Sipariş Oluşturulamadı:\n${data.error || 'Bilinmeyen hata'}`);
                     checkoutBtn.disabled = false;
                     checkoutBtn.textContent = 'Siparişi Tamamla';
                 }
+
             } catch (e) {
                 console.error(e);
-                alert('Connection error');
+                alert('Bağlantı hatası oluştu.');
                 checkoutBtn.disabled = false;
                 checkoutBtn.textContent = 'Siparişi Tamamla';
             }

@@ -798,6 +798,75 @@ button {
   font-size: 1.5rem;
 }
 
+/* Variant Selector Scaling */
+.variant-selector {
+  margin: var(--spacing-sm) 0;
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.variant-selector h4 {
+  margin-bottom: var(--spacing-sm);
+  font-size: 0.9rem;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.size-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.size-btn {
+  min-width: 60px;
+  padding: 0.8rem 1.2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-white);
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.size-btn:hover:not(.disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--color-cyan-glow);
+  transform: translateY(-2px);
+}
+
+.size-btn.active {
+  background: var(--color-cyan-glow);
+  color: var(--color-ocean-dark);
+  border-color: var(--color-cyan-glow);
+  box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+}
+
+.size-btn.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
+  text-decoration: line-through;
+  filter: grayscale(1);
+}
+
+/* Add to Cart Disabled State */
+.add-cart-btn.large:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: var(--color-text-dim) !important;
+  animation: none !important;
+}
+
+
 @media (max-width: 768px) {
   .pdp-grid {
     grid-template-columns: 1fr;
