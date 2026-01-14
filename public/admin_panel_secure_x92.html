@@ -352,14 +352,12 @@
                     <label>Ürün Adı *</label>
                     <input type="text" id="product-name" required>
                 </div>
-                <!-- Dynamic Category Select -->
                 <div class="form-group">
                     <label>Kategori *</label>
                     <select id="product-categoryId" required onchange="onProductCategoryChange()">
                         <option value="">Seçiniz...</option>
                     </select>
                 </div>
-                <!-- Dynamic SubCategory Select -->
                 <div class="form-group">
                     <label>Alt Kategori</label>
                     <select id="product-subCategoryId">
@@ -474,16 +472,16 @@
         </div>
     </div>
 
-
     <script>
         const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? 'http://localhost:10000'
-            : 'https://aqualora.shop'; // Render URL'iniz
+            : 'https://aqualora.shop';
 
         let products = [];
         let categories = [];
         let subcategories = [];
         let brands = [];
+        let csrfToken = '';
 
         // --- Tabs ---
         function switchTab(tab) {
@@ -500,52 +498,60 @@
         }
 
         // --- Initial Load ---
-        let csrfToken = '';
-
         async function init() {
-            // Get CSRF Token
+            // 1. Önce CSRF Token Al
             try {
                 const res = await fetch(`${API_BASE}/api/csrf-token`, { credentials: 'include' });
                 if (res.ok) {
                     const data = await res.json();
                     csrfToken = data.csrfToken;
+                    console.log('CSRF Token initialized');
                 }
             } catch (e) {
                 console.error('CSRF Token fetch error', e);
             }
 
-            // Load cats & subs & brands first for dropdowns
+            // 2. Verileri Yükle
             await Promise.all([loadCategories(), loadSubCategories(), loadBrands()]);
             loadProducts();
             populateCategoryDropdowns();
             populateBrandDropdown();
         }
 
-        // --- Data Fetching ---
-
+        // --- MERKEZİ FETCH YÖNETİCİSİ ---
         async function fetchAPI(endpoint, options = {}) {
+            // 1. Cookie Gönderimi Şart
             options.credentials = 'include';
+            options.headers = options.headers || {};
 
-            // Add CSRF Token to headers for mutation requests
+            // 2. POST/PUT/DELETE İşlemlerinde CSRF Token Ekle
             if (options.method && options.method !== 'GET') {
-                options.headers = {
-                    ...options.headers,
-                    'CSRF-Token': csrfToken
-                };
+                if (csrfToken) {
+                    options.headers['X-CSRF-Token'] = csrfToken;
+                }
             }
 
             const res = await fetch(`${API_BASE}${endpoint}`, options);
-            if (res.status === 401) { window.location.href = '/'; return null; }
+
+            if (res.status === 401) {
+                alert('Oturum süreniz doldu, ana sayfaya yönlendiriliyorsunuz.');
+                window.location.href = '/';
+                return null;
+            }
             if (res.status === 403) {
                 const text = await res.text();
-                // Check if it's invalid csrf token
-                if (text.includes('csrf')) alert('Güvenlik hatası (CSRF). Sayfayı yenileyiniz.');
-                else alert('Yetkisiz işlem');
+                console.error('403 Forbidden:', text);
+                if (text.includes('csrf')) {
+                    alert('Güvenlik anahtarı (CSRF) hatası. Sayfayı yenileyip tekrar deneyin.');
+                } else {
+                    alert('Bu işlem için yetkiniz yok (Admin değilsiniz).');
+                }
                 return null;
             }
             return res;
         }
 
+        // --- Veri Yükleme Fonksiyonları ---
         async function loadCategories() {
             const res = await fetchAPI('/api/admin/categories');
             if (res && res.ok) {
@@ -578,8 +584,7 @@
             }
         }
 
-        // --- Rendering ---
-
+        // --- Render Fonksiyonları ---
         function renderProducts() {
             const tbody = document.getElementById('products-list');
             tbody.innerHTML = products.map(p => `
@@ -646,12 +651,10 @@
         }
 
         function populateCategoryDropdowns() {
-            // Product Modal Category Dropdown
             const pCatSelect = document.getElementById('product-categoryId');
             pCatSelect.innerHTML = '<option value="">Seçiniz...</option>' +
                 categories.map(c => `<option value="${c._id}">${c.name}</option>`).join('');
 
-            // SubCategory Modal Category Dropdown (for creating new sub)
             const sCatSelect = document.getElementById('subcategory-categoryId');
             sCatSelect.innerHTML = '<option value="">Seçiniz...</option>' +
                 categories.map(c => `<option value="${c._id}">${c.name}</option>`).join('');
@@ -663,10 +666,10 @@
                 brands.map(b => `<option value="${b._id}">${b.name}</option>`).join('');
         }
 
-        // --- Product Logic ---
+        // --- Ürün İşlemleri ---
         function openProductModal(product = null) {
-            populateCategoryDropdowns(); // Ensure fresh
-            populateBrandDropdown(); // Ensure fresh brands
+            populateCategoryDropdowns();
+            populateBrandDropdown();
 
             document.getElementById('product-modal-title').textContent = product ? 'Ürünü Düzenle' : 'Yeni Ürün';
             document.getElementById('product-id').value = product?._id || product?.id || '';
@@ -679,11 +682,8 @@
             document.getElementById('product-active').checked = product?.active !== false;
             document.getElementById('product-featured').checked = !!product?.isFeatured;
 
-            // Set Category
             const catId = product?.categoryId?._id || product?.categoryId || '';
             document.getElementById('product-categoryId').value = catId;
-
-            // Trigger Change to populate subcategories
             onProductCategoryChange(product?.subCategoryId?._id || product?.subCategoryId);
 
             document.getElementById('product-modal').classList.add('active');
@@ -756,8 +756,7 @@
             } catch (e) { showToast('Hata', 'error'); }
         });
 
-
-        // --- Category Logic ---
+        // --- Kategori İşlemleri ---
         function openCategoryModal(cat = null) {
             document.getElementById('category-modal-title').textContent = cat ? 'Kategori Düzenle' : 'Yeni Kategori';
             document.getElementById('category-id').value = cat?._id || '';
@@ -806,13 +805,12 @@
             } catch (e) { showToast('Bağlantı Hatası', 'error'); }
         });
 
-
-        // --- SubCategory Logic ---
+        // --- Alt Kategori İşlemleri ---
         function openSubCategoryModal(sub = null) {
             document.getElementById('subcategory-modal-title').textContent = sub ? 'Alt Kategori Düzenle' : 'Yeni Alt Kategori';
             document.getElementById('subcategory-id').value = sub?._id || '';
             document.getElementById('subcategory-name').value = sub?.name || '';
-            // Ensure this dropdown is populated too
+
             const sCatSelect = document.getElementById('subcategory-categoryId');
             sCatSelect.innerHTML = '<option value="">Seçiniz...</option>' +
                 categories.map(c => `<option value="${c._id}">${c.name}</option>`).join('');
@@ -859,7 +857,7 @@
             } catch (e) { showToast('Bağlantı Hatası', 'error'); }
         });
 
-        // --- Brand Logic ---
+        // --- Marka İşlemleri ---
         function openBrandModal(brand = null) {
             document.getElementById('brand-modal-title').textContent = brand ? 'Markayı Düzenle' : 'Yeni Marka';
             document.getElementById('brand-id').value = brand?._id || '';
@@ -914,15 +912,14 @@
             } catch (e) { showToast('Bağlantı Hatası', 'error'); }
         });
 
-
-
-        // --- Common ---
+        // --- Yardımcı Fonksiyonlar ---
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
         }
 
         async function logout() {
-            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+            // Çıkış yaparken de CSRF token gerekli
+            await fetchAPI('/api/auth/logout', { method: 'POST' });
             window.location.href = '/';
         }
 
@@ -934,6 +931,7 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
+        // Başlat
         init();
     </script>
 </body>

@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import csrf from 'csurf';
+// Veri ve Modeller
 import { products as seedProducts, categories } from './src/data/products.js';
 import { Category } from './src/models/Category.js';
 import { SubCategory } from './src/models/SubCategory.js';
@@ -22,13 +23,13 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Trust proxy for Render.com
+// 1. TRUST PROXY (Render ve Cloudflare için ŞART)
 app.set('trust proxy', 1);
 
 const port = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
-// CORS Ayarları - Güncellenmiş Liste
+// 2. CORS AYARLARI (Domainler)
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
@@ -39,7 +40,7 @@ const allowedOrigins = [
 
 console.log('🌐 Allowed CORS Origins:', allowedOrigins);
 
-// CORS Middleware
+// 3. CORS MIDDLEWARE
 app.use(cors({
     origin: (origin, callback) => {
         // Origin yoksa (server-to-server) veya listede varsa izin ver
@@ -50,12 +51,12 @@ app.use(cors({
             callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true // Cookie transferi için şart
+    credentials: true, // Cookie transferi için şart
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
 }));
 
-
-
-// Database Connection
+// 4. DATABASE CONNECTION
 let isDbConnected = false;
 if (process.env.MONGODB_URI) {
     mongoose.connect(process.env.MONGODB_URI, {
@@ -69,106 +70,106 @@ if (process.env.MONGODB_URI) {
         })
         .catch(err => {
             console.error('❌ MongoDB Connection Error:', err.message);
-            if (process.env.NODE_ENV === 'production') {
+            if (isProduction) {
                 console.error('❌ FATAL: Database required in production. Exiting.');
                 process.exit(1);
             }
-            console.warn('⚠️ Server running without database. Persistence disabled.');
+            console.warn('⚠️ Server running without database.');
         });
 } else {
-    if (process.env.NODE_ENV === 'production') {
+    if (isProduction) {
         console.error('❌ FATAL: MONGODB_URI not defined. Exiting.');
         process.exit(1);
     }
-    console.warn('⚠️ MONGODB_URI not found. Server running in memory-only mode.');
+    console.warn('⚠️ MONGODB_URI not found.');
 }
 
-// Rate Limiting for Auth Endpoints
+// 5. BODY PARSER & RATE LIMIT
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 10,
+    max: 20, // Biraz esnetildi
     message: { error: 'Too many attempts. Please try again later.' },
     standardHeaders: true,
     legacyHeaders: false
 });
 
-// Body Parser
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// 6. STATIC FILES (Session'dan ÖNCE olmalı ki gereksiz cookie oluşmasın)
+// Bu sayede resimler, CSS ve JS dosyaları 403 yemeden yüklenir.
+app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Session Middleware - Güncellenmiş
+// 7. SESSION MIDDLEWARE (EN KRİTİK KISIM)
 app.use(cookieSession({
     name: 'session',
-    keys: [process.env.SESSION_SECRET || 'm#?0MzkINzDOxj49V%4cz1d2yD$l0aL0'],
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    secure: isProduction, // HTTPS only in production
+    keys: [process.env.SESSION_SECRET || 'gizli_anahtar_degistirin'],
+    maxAge: 24 * 60 * 60 * 1000, // 24 saat
+
+    // Güvenlik Ayarları
     httpOnly: true,
-    sameSite: isProduction ? 'none' : 'lax', // Cross-site cookies in production
-    domain: undefined // Let browser handle it
+    secure: true, // Render HTTPS olduğu için TRUE olmalı
+
+    // Aynı domainde (aqualora.shop) çalıştığımız için 'lax' en iyisidir.
+    sameSite: 'lax',
+
+    // Domain'i null bırakıyoruz, tarayıcı otomatik algılar (En güvenlisi)
+    domain: undefined
 }));
 
-// CSRF Protection
+// 8. CSRF PROTECTION
 const csrfProtection = csrf({
-    cookie: false,
+    cookie: false, // CookieSession kullandığımız için false
     sessionKey: 'session',
-    ignoreMethods: ['GET', 'HEAD', 'OPTIONS']
+    value: (req) => {
+        return req.headers['x-csrf-token'] ||
+            req.headers['csrf-token'] ||
+            req.body._csrf;
+    }
 });
 
-// CSRF Error Handler
+// Global Hata Yakalayıcı (CSRF Hatası İçin)
 app.use((err, req, res, next) => {
     if (err.code === 'EBADCSRFTOKEN') {
-        console.error('❌ CSRF token invalid for:', req.method, req.path);
+        console.error('❌ CSRF Error:', req.method, req.path);
+        // Cookie'yi temizle ki kullanıcı yenileyince düzelmiş olsun
+        req.session = null;
         return res.status(403).json({
-            error: 'CSRF token geçersiz',
-            message: 'Lütfen sayfayı yenileyin ve tekrar deneyin'
+            error: 'CSRF token geçersiz veya eksik',
+            message: 'Oturumunuz zaman aşımına uğradı, lütfen sayfayı yenileyin.'
         });
     }
     next(err);
 });
 
-// Static files
-// Static files - PRODUCTION SETUP
-// Serve built frontend files from 'dist'
-app.use(express.static(path.join(__dirname, 'dist')));
-app.use(express.static(path.join(__dirname, 'public')));
+// ==================== ROUTES ====================
 
-// ==================== ROUTES (CSRF'DEN ÖNCE) ====================
-
-// API Info Endpoint (Moved from / to /api/info to allow frontend at /)
+// API Info Endpoint
 app.get('/api/info', (req, res) => {
     res.json({
         message: 'Aquaflora API is running',
-        version: '1.0.0',
-        database: isDbConnected,
+        database: isDbConnected ? 'connected' : 'disconnected',
         timestamp: new Date().toISOString()
     });
 });
 
 // Health check
 app.get('/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        database: isDbConnected ? 'connected' : 'disconnected',
-        timestamp: new Date().toISOString()
-    });
+    res.status(200).json({ status: 'ok' });
 });
 
-// Debug endpoint
-app.get('/api/debug', (req, res) => {
-    res.json({
-        ok: true,
-        time: new Date().toISOString(),
-        env: process.env.NODE_ENV,
-        database: isDbConnected
-    });
-});
-
-// CSRF Token Endpoint (CSRF koruması YOK - token almak için gerekli)
+// CSRF Token Endpoint (Token almak için)
+// Bu endpoint korumalı OLMAMALI, sadece token dağıtır.
 app.get('/api/csrf-token', csrfProtection, (req, res) => {
-    res.json({ csrfToken: req.csrfToken() });
+    // Token'ı hem JSON dönelim hem de loglayalım
+    const token = req.csrfToken();
+    // console.log('🔑 CSRF Token Generated:', token);
+    res.json({ csrfToken: token });
 });
 
-// ==================== BURADAN SONRA DİĞER ROUTE'LAR ====================
+// BURADAN SONRA DİĞER API ROUTE'LARINIZ GELECEK...
+
 
 // Admin Seeder
 async function seedAdminUser() {
