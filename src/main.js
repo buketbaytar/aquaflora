@@ -98,8 +98,23 @@ document.addEventListener('click', (e) => {
     navigate('cart');
   }
 
+  // Product Card Click (Navigation)
+  const productCard = e.target.closest('.product-card');
+  if (productCard && !e.target.closest('button') && !e.target.closest('.add-cart-btn') && !e.target.closest('.fav-btn')) {
+    const id = productCard.dataset.id; // Keep as string first to safely parse
+    // Try matching both string and number
+    const p = products.find(prod => prod.id == id || prod._id == id);
+
+    if (p) {
+      e.preventDefault();
+      navigate('product', { id: p.id || p._id });
+      return;
+    }
+  }
+
   // Add to Cart Button Click
   if (e.target.closest('.add-cart-btn')) {
+    e.preventDefault();
     const btn = e.target.closest('.add-cart-btn');
 
     // Check if it's the large PDP button
