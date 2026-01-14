@@ -1075,6 +1075,31 @@ app.use((err, req, res, next) => {
     next(err);
 });
 
+// ==================== HOTFIXES (Ekran Görüntüsü Hataları İçin Yamalar) ====================
+
+// 1. DÜZELTME: Unsplash Görseli (CSS'de hatalı path verilmiş)
+// Tarayıcı bunu kendi sunucusunda arıyor, biz onu gerçek Unsplash adresine yönlendiriyoruz.
+app.get('/photo-1544551763-46a8723ba3f9', (req, res) => {
+    // Görsel: Sualtı dalgıç/deniz görseli (Temana uygun)
+    res.redirect('https://images.unsplash.com/photo-1544551763-46a8723ba3f9?q=80&w=2000&auto=format&fit=crop');
+});
+
+// 2. DÜZELTME: Turkey_location_map.svg
+// Eğer dosya public klasöründe yoksa, Wikimedia'daki orijinal kaynağa yönlendirir.
+app.get('/Turkey_location_map.svg', (req, res) => {
+    // Wikimedia Commons'tan doğrudan çekiyoruz
+    res.redirect('https://upload.wikimedia.org/wikipedia/commons/1/1e/Turkey_location_map.svg');
+});
+
+// 3. DÜZELTME: "undefined" İsteği
+// Frontend'de hatalı bir değişken kullanımı sonucu oluşan isteği sessizce öldürür (404 hatasını engeller).
+app.get('/undefined', (req, res) => {
+    res.status(200).send(''); // Boş 200 yanıtı dön, kırmızı hatayı yok et.
+});
+
+// ==================== END HOTFIXES ====================
+
+
 // ==================== SPA FALLBACK ====================
 
 // For any request not handled by API, serve index.html
