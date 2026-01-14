@@ -46,10 +46,9 @@ export function Footer() {
           
           <h4 style="margin-top: 1.5rem">Yasal</h4>
            <ul>
-            <li><a href="#">KVKK Aydınlatma Metni</a></li>
-            <li><a href="#">Gizlilik Politikası</a></li>
-            <li><a href="#">Mesafeli Satış Sözleşmesi</a></li>
-            <li><a href="#">İade & İptal Politikası</a></li>
+            <li><a href="/kvkk.html">KVKK ve Gizlilik</a></li>
+            <li><a href="/sozlesme.html">Mesafeli Satış Sözleşmesi</a></li>
+            <li><a href="/iade-kosullari.html">İptal ve İade</a></li>
           </ul>
         </div>
 

@@ -72,7 +72,17 @@ export function CartPage() {
                     </div>
                     
                     ${Auth.user ? `
-                        <button id="checkout-btn" class="btn checkout-btn" disabled>Ödemeye Geç (Bakımda)</button>
+                        <div style="margin: 20px 0; padding: 15px; background: rgba(0, 212, 255, 0.1); border-radius: 8px; border: 1px solid rgba(0, 212, 255, 0.3);">
+                            <label style="display: flex; align-items: start; gap: 10px; cursor: pointer; font-size: 0.9rem; line-height: 1.6;">
+                                <input type="checkbox" id="contract-approval" style="margin-top: 4px; width: 18px; height: 18px; cursor: pointer;">
+                                <span>
+                                    Ön Bilgilendirme Formunu ve 
+                                    <a href="/sozlesme.html" target="_blank" style="color: #00d4ff; text-decoration: underline; font-weight: 600;">Mesafeli Satış Sözleşmesini</a> 
+                                    okudum, onaylıyorum.
+                                </span>
+                            </label>
+                        </div>
+                        <button id="checkout-btn" class="btn checkout-btn" disabled style="opacity: 0.5; cursor: not-allowed;">Siparişi Tamamla (Bakımda)</button>
                         <p class="maintenance-hint" style="color: #ffcc00; font-size: 0.85rem; margin-top: 10px; text-align: center;">
                             ⚠️ Ödeme sistemi yakında aktif olacaktır.
                         </p>
@@ -88,8 +98,32 @@ export function CartPage() {
 
 export function setupCartInteractions() {
     const checkoutBtn = document.querySelector('#checkout-btn');
+    const contractCheckbox = document.querySelector('#contract-approval');
+
+    // Checkbox kontrolü ekle
+    if (contractCheckbox && checkoutBtn) {
+        contractCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                checkoutBtn.style.opacity = '1';
+                checkoutBtn.style.cursor = 'pointer';
+                // Bakımda olduğu için disabled kalıyor, ama normal durumda:
+                // checkoutBtn.disabled = false;
+            } else {
+                checkoutBtn.style.opacity = '0.5';
+                checkoutBtn.style.cursor = 'not-allowed';
+                // checkoutBtn.disabled = true;
+            }
+        });
+    }
+
     if (checkoutBtn) {
         checkoutBtn.addEventListener('click', async () => {
+            // Önce checkbox kontrolü yap
+            if (contractCheckbox && !contractCheckbox.checked) {
+                alert('⚠️ Lütfen Mesafeli Satış Sözleşmesini okuyup onaylayınız.');
+                return;
+            }
+
             checkoutBtn.disabled = true;
             checkoutBtn.textContent = 'İşleniyor...';
 
@@ -125,19 +159,19 @@ export function setupCartInteractions() {
                     } else {
                         alert('Payment Init Failed: ' + data.errorMessage);
                         checkoutBtn.disabled = false;
-                        checkoutBtn.textContent = 'Ödemeye Geç';
+                        checkoutBtn.textContent = 'Siparişi Tamamla';
                     }
                 } else {
                     const error = await res.json();
                     alert('Error: ' + error.error);
                     checkoutBtn.disabled = false;
-                    checkoutBtn.textContent = 'Ödemeye Geç';
+                    checkoutBtn.textContent = 'Siparişi Tamamla';
                 }
             } catch (e) {
                 console.error(e);
                 alert('Connection error');
                 checkoutBtn.disabled = false;
-                checkoutBtn.textContent = 'Ödemeye Geç';
+                checkoutBtn.textContent = 'Siparişi Tamamla';
             }
         });
     }
