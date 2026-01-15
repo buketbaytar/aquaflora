@@ -654,6 +654,65 @@ app.post('/api/cart/add', csrfProtection, async (req, res) => {
     }
 });
 
+// Remove from Cart
+app.post('/api/cart/remove', csrfProtection, async (req, res) => {
+    console.log('[POST /api/cart/remove] Request received');
+    try {
+        const user = await getUser(req);
+        if (!user) return res.status(401).json({ error: 'Not authenticated' });
+
+        const { productId, selectedVariant } = req.body;
+        // Allows removing specifically by variant or just by product ID (if no variant)
+        if (!productId) return res.status(400).json({ error: 'Product ID required' });
+
+        let items = [];
+
+        if (isDbConnected) {
+            console.log('[POST /api/cart/remove] Removing from DB cart');
+            const cart = await Cart.findOne({ userId: user._id });
+            if (cart) {
+                // Remove item matching ID and Variant
+                cart.items = cart.items.filter(item =>
+                    !(item.productId === parseInt(productId) && item.selectedVariant === (selectedVariant || undefined))
+                    // Also robust check for MongoDB _id vs numeric id if strictly required, but usually parseint handles it if schema is numeric.
+                    // Wait, Cart Schema productId is Number. Product DB _id is ObjectId.
+                    // If we stored it as Number, this is fine.
+                );
+                await cart.save();
+                items = cart.items;
+            }
+        } else {
+            console.log('[POST /api/cart/remove] Removing from memory cart');
+            if (memoryCarts[user.id]) {
+                memoryCarts[user.id] = memoryCarts[user.id].filter(item =>
+                    !(item.productId === parseInt(productId) && item.selectedVariant === (selectedVariant || undefined))
+                );
+                items = memoryCarts[user.id];
+            }
+        }
+
+        // Return updated cart
+        const allProducts = await getProducts(true);
+        const cartItems = items.map(item => {
+            const product = allProducts.find(p => p._id?.toString() === item.productId.toString() || p.id == item.productId);
+            if (product) {
+                return {
+                    ...product,
+                    selectedVariant: item.selectedVariant,
+                    quantity: item.quantity || 1
+                };
+            }
+            return null;
+        }).filter(Boolean);
+
+        res.json(cartItems);
+
+    } catch (e) {
+        console.error('[POST /api/cart/remove] Error:', e.message);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // --- Order Endpoints ---
 
 // Create Order with Stock Control

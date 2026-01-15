@@ -53,7 +53,7 @@ export function CartPage() {
                                 <p class="category">${item.category || ''}</p>
                                 <p class="price">${item.price}${item.quantity > 1 ? ` x ${item.quantity}` : ''}</p>
                             </div>
-                            <button class="remove-btn text-danger" onclick="alert('Not implemented yet')">🗑️</button>
+                            <button class="remove-btn text-danger" data-id="${item.id || item._id}" data-variant="${item.selectedVariant}">🗑️</button>
                         </div>
                         `;
     }).join('')}
@@ -99,6 +99,21 @@ export function CartPage() {
 export function setupCartInteractions() {
     const checkoutBtn = document.querySelector('#checkout-btn');
     const contractCheckbox = document.querySelector('#contract-approval');
+
+    // Remove Button Delegation
+    const cartItemsContainer = document.querySelector('.cart-items');
+    if (cartItemsContainer) {
+        cartItemsContainer.addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('.remove-btn');
+            if (removeBtn) {
+                const id = removeBtn.dataset.id;
+                const variant = removeBtn.dataset.variant;
+                // Confirm optional? "Are you sure?"
+                // For now, direct remove as it's faster UX
+                Cart.remove(id, variant === 'undefined' ? null : variant);
+            }
+        });
+    }
 
     // Initial State Check
     if (checkoutBtn && contractCheckbox) {

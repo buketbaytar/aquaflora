@@ -25,9 +25,31 @@ export const Cart = {
         }
     },
 
+    async remove(productId, selectedVariant = null) {
+        try {
+            const body = { productId };
+            if (selectedVariant) body.selectedVariant = selectedVariant;
+
+            const res = await fetch(`${API_BASE_URL}/api/cart/remove`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(body)
+            });
+
+            if (res.ok) {
+                this.items = await res.json();
+                this.notify();
+                this.showToast('Ürün sepetten silindi');
+            }
+        } catch (e) {
+            console.error('Error removing from cart:', e);
+        }
+    },
+
     async add(product, selectedVariant = null) {
         try {
-            const body = { productId: product.id };
+            const body = { productId: product.id || product._id }; // Ensuring ID handling
             if (selectedVariant) {
                 body.selectedVariant = selectedVariant;
             }

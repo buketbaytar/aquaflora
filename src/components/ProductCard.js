@@ -2,11 +2,11 @@ import { formatPriceTR } from '../utils/formatPrice.js';
 import { escapeHTML } from '../utils/sanitize.js';
 
 export function ProductCard(product) {
-  const isFavorite = window.userFavorites?.includes(product.id) ? 'active' : '';
+  const isFavorite = window.userFavorites?.includes(product.id) || window.userFavorites?.includes(product._id) ? 'active' : '';
 
   return `
-    <div class="product-card glass-panel" data-id="${product.id}">
-      <button class="fav-btn ${isFavorite}" data-id="${product.id}" title="Favorilere Ekle">
+    <div class="product-card glass-panel" data-id="${product.id || product._id}">
+      <button class="fav-btn ${isFavorite}" data-id="${product.id || product._id}" title="Favorilere Ekle">
          <svg width="20" height="20" viewBox="0 0 24 24" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
       </button>
 
