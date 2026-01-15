@@ -11,7 +11,7 @@ export function CartPage() {
             <div class="cart-empty-state glass-panel">
                 <h2>Sepetiniz Boş</h2>
                 <p>Henüz sepetinize ürün eklemediniz.</p>
-                <a href="#home" class="btn primary-btn" onclick="window.history.back()">Alışverişe Başla</a>
+                <a href="/urunler.html" class="btn primary-btn" id="start-shopping-btn">Alışverişe Başla</a>
             </div>
         `;
     }

@@ -55,8 +55,8 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  // Handle 'Ürünleri Gör' Navigation
-  if (e.target.closest('#view-all-products') || e.target.id === 'view-all-products') {
+  // Handle 'Ürünleri Gör' & 'Alışverişe Başla' Navigation
+  if (e.target.closest('#view-all-products') || e.target.id === 'view-all-products' || e.target.id === 'start-shopping-btn') {
     e.preventDefault();
     window.location.href = '/urunler.html';
     return;
@@ -119,8 +119,9 @@ document.addEventListener('click', (e) => {
 
     // Check if it's the large PDP button
     if (btn.classList.contains('large')) {
-      const id = parseInt(currentRoute.params.id);
-      const p = products.find(prod => (prod._id === id || prod.id === id));
+      const idParam = currentRoute.params.id;
+      // Handle both string and number IDs
+      const p = products.find(prod => (prod._id == idParam || prod.id == idParam));
       if (p) {
         // Check if product has variants and if a variant is selected
         const selectedVariant = document.querySelector('.size-btn.active')?.dataset.size;
@@ -131,12 +132,22 @@ document.addEventListener('click', (e) => {
 
     let productToAdd = null;
     if (e.target.closest('.product-card')) {
-      const id = parseInt(e.target.closest('.product-card').dataset.id);
-      productToAdd = products.find(p => (p._id === id || p.id === id));
+      const card = e.target.closest('.product-card');
+      const idRaw = card.dataset.id;
+      // Try to find by direct match (string or number)
+      productToAdd = products.find(p => (p._id == idRaw || p.id == idRaw));
       e.stopPropagation(); // prevent navigation
     }
 
-    if (productToAdd) Cart.add(productToAdd);
+    if (productToAdd) {
+      if (productToAdd.variants && productToAdd.variants.length > 0) {
+        // If has variants, go to detail page to select size
+        navigate('product', { id: productToAdd.id || productToAdd._id });
+      } else {
+        // No variants, add directly
+        Cart.add(productToAdd);
+      }
+    }
   }
 
   // Variant Size Button Click (Product Detail Page)
