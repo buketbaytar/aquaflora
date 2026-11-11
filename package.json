@@ -5,20 +5,23 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node --watch server.js",
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server.js",
-    "postinstall": "npm run build"
+    "admin:reset": "node reset_admin.js",
+    "test:smoke": "node scripts/smoke-test.js",
+    "postinstall": "npm run build",
+    "catalog:import": "node scripts/import-catalog.js",
+    "catalog:export": "node scripts/export-catalog.js"
   },
   "engines": {
     "node": "20.x"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "body-parser": "^2.2.1",
     "cookie-session": "^2.1.1",
     "cors": "^2.8.5",
-    "csurf": "^1.11.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",

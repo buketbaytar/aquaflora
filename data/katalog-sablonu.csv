@@ -1,0 +1,58 @@
+﻿sku;kategori;alt_kategori;urun_adi;marka;fiyat;stok;bedenler;gorseller;video;aciklama;ozellikler;one_cikan;aktif
+MSK-001;Maske & Şnorkel;Dalış Maskeleri;Tek Camlı Silikon Dalış Maskesi;;;;;;;Geniş görüş açılı, temperli camlı, hipoalerjenik silikon etekli dalış maskesi. Tüplü dalış ve şnorkel için uygundur.;Cam=Temperli|Etek=Silikon|Seviye=Başlangıç;hayir;hayir
+MSK-002;Maske & Şnorkel;Dalış Maskeleri;Çift Camlı Düşük Hacimli Serbest Dalış Maskesi;;;;;;;Düşük iç hacmi sayesinde az havayla denkleştirme sağlar; serbest dalış ve zıpkın için tasarlanmıştır.;Cam=Temperli|Hacim=Düşük|Disiplin=Serbest dalış;hayir;hayir
+MSK-003;Maske & Şnorkel;Maske-Şnorkel Setleri;Çocuk Maske ve Şnorkel Seti;;;;;;;Çocuk yüz yapısına uygun maske ve kuru tip şnorkelden oluşan set.;Yaş=6-12|Seviye=Başlangıç;hayir;hayir
+SNK-001;Maske & Şnorkel;Şnorkeller;Kuru Tip Şnorkel;;;;;;;Üst valfi dalga ve dalış sırasında suyun girişini engeller; alt tahliye valflidir.;Tip=Kuru;hayir;hayir
+SNK-002;Maske & Şnorkel;Şnorkeller;Esnek Serbest Dalış Şnorkeli;;;;;;;Valfsiz, esnek gövdeli, sade yapılı serbest dalış şnorkeli.;Tip=Klasik|Disiplin=Serbest dalış;hayir;hayir
+PLT-001;Paletler;Kapalı Topuk Paletler;Kapalı Topuk Şnorkel Paleti;;;;36-37|38-39|40-41|42-43|44-45;;;Çıplak ayakla kullanılan, hafif ve rahat kapalı topuk palet.;Topuk=Kapalı|Seviye=Başlangıç;hayir;hayir
+PLT-002;Paletler;Açık Topuk Paletler;Açık Topuk Tüplü Dalış Paleti;;;;S|M|L|XL;;;Patikle kullanılan, ayarlanabilir kayışlı tüplü dalış paleti.;Topuk=Açık|Disiplin=Tüplü dalış;hayir;hayir
+PLT-003;Paletler;Serbest Dalış Paletleri;Uzun Serbest Dalış Paleti (Plastik Kanat);;;;38-39|40-41|42-43|44-45;;;Uzun kanatlı, verimli itiş sağlayan serbest dalış ve zıpkın paleti.;Kanat=Polipropilen|Disiplin=Serbest dalış;hayir;hayir
+PLT-004;Paletler;Serbest Dalış Paletleri;Karbon Kanatlı Serbest Dalış Paleti;;;;38-39|40-41|42-43|44-45;;;Hafif ve yüksek geri dönüşlü karbon kanat; ileri seviye serbest dalıcılar için.;Kanat=Karbon|Seviye=İleri;hayir;hayir
+PLT-005;Paletler;Palet Aksesuarları;Palet Yaylı Bağı (Çift);;;;;;;Açık topuk paletler için paslanmaz yaylı kayış seti.;Malzeme=Paslanmaz çelik;hayir;hayir
+ELB-001;Dalış Elbiseleri;Shorty (Kısa) Elbiseler;3mm Shorty Dalış Elbisesi - Erkek;;;;S|M|L|XL|XXL;;;Ilık sular için kısa kollu ve kısa paçalı 3mm neopren elbise.;Kalınlık=3mm|Cinsiyet=Erkek|Su sıcaklığı=24°C ve üzeri;hayir;hayir
+ELB-002;Dalış Elbiseleri;Shorty (Kısa) Elbiseler;3mm Shorty Dalış Elbisesi - Kadın;;;;XS|S|M|L|XL;;;Kadın vücut yapısına uygun kesimli 3mm shorty elbise.;Kalınlık=3mm|Cinsiyet=Kadın|Su sıcaklığı=24°C ve üzeri;hayir;hayir
+ELB-003;Dalış Elbiseleri;Islak Elbiseler;5mm Tam Boy Islak Dalış Elbisesi - Erkek;;;;S|M|L|XL|XXL;;;Akdeniz ve Ege için ideal 5mm tam boy dalış elbisesi.;Kalınlık=5mm|Cinsiyet=Erkek|Su sıcaklığı=18-24°C;hayir;hayir
+ELB-004;Dalış Elbiseleri;Islak Elbiseler;5mm Tam Boy Islak Dalış Elbisesi - Kadın;;;;XS|S|M|L|XL;;;Kadın kesimli 5mm tam boy dalış elbisesi.;Kalınlık=5mm|Cinsiyet=Kadın|Su sıcaklığı=18-24°C;hayir;hayir
+ELB-005;Dalış Elbiseleri;Islak Elbiseler;7mm Islak Dalış Elbisesi;;;;S|M|L|XL|XXL;;;Soğuk sular ve kış dalışları için 7mm elbise.;Kalınlık=7mm|Su sıcaklığı=12-18°C;hayir;hayir
+ELB-006;Dalış Elbiseleri;Semi-Dry ve Kuru Elbiseler;7mm Semi-Dry Dalış Elbisesi;;;;S|M|L|XL|XXL;;;Su geçirmez fermuar ve contalarla minimum su girişi sağlayan yarı kuru elbise.;Kalınlık=7mm|Tip=Semi-dry;hayir;hayir
+ELB-007;Dalış Elbiseleri;Zıpkın ve Kamuflaj Elbiseler;5mm Kamuflaj Zıpkın Elbisesi (İki Parça);;;;S|M|L|XL|XXL;;;İç yüzeyi açık hücreli, sıcak tutan, kamuflaj desenli iki parça zıpkın elbisesi.;Kalınlık=5mm|Yapı=Açık hücre|Disiplin=Zıpkın;hayir;hayir
+ELB-008;Dalış Elbiseleri;Lycra ve Rashguard;UV Korumalı Lycra Dalış Tulumu;;;;S|M|L|XL;;;Güneş ve denizanası temasına karşı ince koruma; elbise altı katman olarak da kullanılır.;UV=UPF 50+;hayir;hayir
+NEO-001;Patik, Eldiven, Başlık;Patikler;5mm Tabanlı Dalış Patiği;;;;38|39|40|41|42|43|44|45;;;Sert tabanlı, fermuarlı 5mm patik; açık topuk paletlerle kullanılır.;Kalınlık=5mm;hayir;hayir
+NEO-002;Patik, Eldiven, Başlık;Eldivenler;3mm Neopren Dalış Eldiveni;;;;S|M|L|XL;;;Kavrama yüzeyli 3mm dalış eldiveni.;Kalınlık=3mm;hayir;hayir
+NEO-003;Patik, Eldiven, Başlık;Başlıklar;5mm Dalış Başlığı;;;;S|M|L|XL;;;Isı kaybını azaltan 5mm neopren başlık.;Kalınlık=5mm;hayir;hayir
+NEO-004;Patik, Eldiven, Başlık;Yelek ve Alt Katmanlar;Neopren İç Yelek (Undervest);;;;S|M|L|XL;;;Elbise altında ekstra ısı sağlayan başlıklı/başlıksız iç yelek.;Kalınlık=3mm;hayir;hayir
+REG-001;Tüplü Dalış Ekipmanı;Regülatörler;Regülatör Seti (1. Kademe + 2. Kademe + Oktopus);;;;;;;Soğuk suya uygun, dengelenmiş regülatör seti. Yıllık bakım önerilir.;Bağlantı=DIN/INT|Disiplin=Tüplü dalış;hayir;hayir
+REG-002;Tüplü Dalış Ekipmanı;Regülatörler;Oktopus (Yedek 2. Kademe);;;;;;;Acil durum hava kaynağı; sarı renkli, uzun hortumlu.;Renk=Sarı;hayir;hayir
+BCD-001;Tüplü Dalış Ekipmanı;Denge Yelekleri (BCD);Ceket Tip Denge Yeleği (BCD);;;;S|M|L|XL;;;Entegre ağırlık cepli, ceket tip denge yeleği.;Tip=Ceket|Ağırlık sistemi=Entegre;hayir;hayir
+BCD-002;Tüplü Dalış Ekipmanı;Denge Yelekleri (BCD);Kanat (Wing) Tip Denge Yeleği;;;;;;;Sırt hacimli, yüzeyde ve dipte dengeli trim sağlayan wing BCD.;Tip=Wing;hayir;hayir
+KNS-001;Tüplü Dalış Ekipmanı;Konsol ve Göstergeler;Konsol (Basınç Göstergesi + Derinlik Göstergesi);;;;;;;Tüp basıncı ve derinliği tek konsolda gösterir.;;hayir;hayir
+AGR-001;Tüplü Dalış Ekipmanı;Ağırlık Sistemleri;Ağırlık Kemeri (Tokalı);;;;;;;Paslanmaz tokalı dokuma ağırlık kemeri.;Toka=Paslanmaz;hayir;hayir
+AGR-002;Tüplü Dalış Ekipmanı;Ağırlık Sistemleri;Kaplamalı Kurşun Ağırlık 1 kg;;;;;;;Kemere takılan, kaplamalı kurşun ağırlık.;Ağırlık=1 kg;hayir;hayir
+BLG-001;Dalış Bilgisayarı & Enstrüman;Dalış Bilgisayarları;Saat Tipi Dalış Bilgisayarı;;;;;;;Hava/Nitrox modlu, günlük kullanıma uygun saat tipi dalış bilgisayarı.;Mod=Hava/Nitrox;hayir;hayir
+BLG-002;Dalış Bilgisayarı & Enstrüman;Dalış Bilgisayarları;Konsol Tipi Dalış Bilgisayarı;;;;;;;Konsola takılan, büyük ekranlı dalış bilgisayarı.;;hayir;hayir
+PSL-001;Dalış Bilgisayarı & Enstrüman;Pusula ve Enstrümanlar;Dalış Pusulası;;;;;;;Bilek kayışlı, fosforlu kadranlı dalış pusulası.;;hayir;hayir
+ZPK-001;Serbest Dalış & Zıpkın;Zıpkın Tüfekleri;Lastikli Zıpkın Tüfeği 75 cm;;;;;;;Kayalık ve yosunlu alanlar için kompakt lastikli tüfek.;Boy=75 cm|Tip=Lastikli;hayir;hayir
+ZPK-002;Serbest Dalış & Zıpkın;Zıpkın Tüfekleri;Lastikli Zıpkın Tüfeği 90 cm;;;;;;;Açık su ve orta mesafe için 90 cm lastikli tüfek.;Boy=90 cm|Tip=Lastikli;hayir;hayir
+ZPK-003;Serbest Dalış & Zıpkın;Zıpkın Tüfekleri;Havalı Zıpkın Tüfeği;;;;;;;Güçlü ve kompakt havalı (pnömatik) zıpkın tüfeği.;Tip=Havalı;hayir;hayir
+ZPK-004;Serbest Dalış & Zıpkın;Zıpkın Yedek Parçaları;Zıpkın Lastiği (Yedek);;;;;;;Lastikli tüfekler için yedek lastik.;Çap=16 mm;hayir;hayir
+ZPK-005;Serbest Dalış & Zıpkın;Zıpkın Yedek Parçaları;Zıpkın Şişi;;;;;;;Paslanmaz çelik zıpkın şişi.;Malzeme=Paslanmaz çelik;hayir;hayir
+SMB-001;Serbest Dalış & Zıpkın;Şamandıra ve İpler;Zıpkın Şamandırası ve Makara İpi;;;;;;;Avcıyı yüzeydeki teknelere görünür kılan şamandıra ve ip seti; güvenliğiniz için mutlaka kullanın.;Renk=Turuncu;hayir;hayir
+SMB-002;Serbest Dalış & Zıpkın;Ağırlık ve Kemerler;Lastik (Marsilya) Ağırlık Kemeri;;;;;;;Serbest dalış için esnek, nefes almayı kısıtlamayan lastik kemer.;Malzeme=Kauçuk;hayir;hayir
+FNR-001;Sualtı Aydınlatma & Kamera;Sualtı Fenerleri;Şarjlı LED Sualtı Feneri;;;;;;;Gece dalışı ve mağara girişleri için şarj edilebilir LED fener.;Pil=Şarjlı;hayir;hayir
+FNR-002;Sualtı Aydınlatma & Kamera;Sualtı Fenerleri;Mini Yedek Sualtı Feneri;;;;;;;Yedek ışık kaynağı olarak taşınan kompakt fener.;;hayir;hayir
+KAM-001;Sualtı Aydınlatma & Kamera;Kamera ve Kutular;Aksiyon Kamerası Su Geçirmez Kutusu;;;;;;;Aksiyon kameraları için derin dalışa uygun koruyucu kutu.;;hayir;hayir
+AKS-001;Aksesuar & Güvenlik;Dalış Bıçakları;Bacak Kemerli Dalış Bıçağı;;;;;;;Kılıflı, bacak kemerli paslanmaz dalış bıçağı.;Malzeme=Paslanmaz çelik;hayir;hayir
+AKS-002;Aksesuar & Güvenlik;Güvenlik Ekipmanları;Yüzey İşaret Şamandırası (SMB);;;;;;;Yüzeye çıkışta tekneye konum bildiren işaret şamandırası.;Renk=Turuncu;hayir;hayir
+AKS-003;Aksesuar & Güvenlik;Güvenlik Ekipmanları;Dalış Düdüğü;;;;;;;BCD'ye takılan yüksek sesli acil durum düdüğü.;;hayir;hayir
+AKS-004;Aksesuar & Güvenlik;Çantalar;Fileli Ekipman Çantası;;;;;;;Maske, şnorkel ve paletleri taşımak için hızlı kuruyan file çanta.;;hayir;hayir
+AKS-005;Aksesuar & Güvenlik;Çantalar;Su Geçirmez Kuru Çanta 20 L;;;;;;;Tekne ve sahil için su geçirmez rulo kapaklı çanta.;Hacim=20 L;hayir;hayir
+AKS-006;Aksesuar & Güvenlik;Bakım Ürünleri;Maske Buğu Önleyici (Defog);;;;;;;Maskede buğulanmayı önleyen sprey/jel.;;hayir;hayir
+AKS-007;Aksesuar & Güvenlik;Bakım Ürünleri;Neopren Bakım Şampuanı;;;;;;;Dalış elbisesinin ömrünü uzatan, koku gideren bakım şampuanı.;;hayir;hayir
+YZM-001;Yüzme;Yüzme Gözlükleri;Antrenman Yüzücü Gözlüğü;;;;;;;Buğu önleyici kaplamalı, UV korumalı yüzücü gözlüğü.;UV=Var;hayir;hayir
+YZM-002;Yüzme;Boneler;Silikon Bone;;;;;;;Dayanıklı, saç dostu silikon bone.;Malzeme=Silikon;hayir;hayir
+YZM-003;Yüzme;Mayolar;Erkek Antrenman Mayosu;;;;S|M|L|XL;;;Klor dayanımlı kumaştan erkek antrenman mayosu.;Cinsiyet=Erkek;hayir;hayir
+YZM-004;Yüzme;Mayolar;Kadın Antrenman Mayosu;;;;XS|S|M|L|XL;;;Klor dayanımlı kumaştan kadın antrenman mayosu.;Cinsiyet=Kadın;hayir;hayir
+YZM-005;Yüzme;Antrenman Ekipmanları;Yüzme Tahtası (Kickboard);;;;;;;Bacak antrenmanı için EVA köpük yüzme tahtası.;;hayir;hayir
+YZM-006;Yüzme;Antrenman Ekipmanları;Pull Buoy;;;;;;;Kol antrenmanı için bacak arası yüzdürücü.;;hayir;hayir
+SET-001;Setler & Paketler;Başlangıç Setleri;Başlangıç Şnorkel Seti (Maske + Şnorkel + Palet + Çanta);;;;S|M|L|XL;;;Şnorkele yeni başlayanlar için tek pakette tüm temel ekipman.;Seviye=Başlangıç;hayir;hayir
+SET-002;Setler & Paketler;Başlangıç Setleri;Serbest Dalış Başlangıç Seti (Maske + Şnorkel + Uzun Palet);;;;38-39|40-41|42-43|44-45;;;Serbest dalışa başlayanlar için uyumlu ekipman paketi.;Seviye=Başlangıç|Disiplin=Serbest dalış;hayir;hayir

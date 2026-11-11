@@ -1,711 +1,604 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://aqualora.shop';
+import './style.css';
+import './products-page.css';
+import './app.css';
 
-async function fetchProductsFromAPI() {
-  const res = await fetch(`${API_BASE}/api/products`, { cache: 'no-store' });
-  return await res.json();
-}
+import { SITE, runtime } from './config.js';
+import { api } from './utils/api.js';
+import { Auth } from './utils/auth.js';
+import { Cart } from './utils/cart.js';
+import { Favorites } from './utils/favorites.js';
+import { toast } from './utils/toast.js';
+import { seo } from './utils/seo.js';
+import { escapeHTML as e } from './utils/sanitize.js';
 
+import { Header, AuthModal } from './components/Header.js';
+import { Footer } from './components/Footer.js';
+import { Hero } from './components/Hero.js';
+import { ProductList, ProductGrid, setupProductInteractions } from './components/ProductList.js';
+import { productUrl } from './components/ProductCard.js';
+import { ProductDetail } from './components/ProductDetail.js';
+import { FilterSidebar, SortBar } from './components/FilterSidebar.js';
+import { DivingMap, setupMapInteractions } from './components/DivingMap.js';
+import { CartPage } from './components/CartPage.js';
+import { CheckoutPage, mountCheckout } from './components/CheckoutPage.js';
+import {
+  OrderResultPage, mountOrderResult, OrderTrackPage, mountOrderTrack,
+  AccountPage, mountAccount, ResetPasswordPage, mountResetPassword
+} from './components/OrderPages.js';
+import { ChatWidget, setupChatWidget } from './components/AIAssistant.js';
 
-
-import './style.css'
-import './products-page.css'
-import { Auth } from './utils/auth.js'
-import { Header, setupHeader } from './components/Header.js'
-import { Footer } from './components/Footer.js'
-import { Hero } from './components/Hero.js'
-import { ProductList, setupProductInteractions } from './components/ProductList.js'
-import { ProductDetail } from './components/ProductDetail.js'
-import { AIAssistant, setupAIAssistant } from './components/AIAssistant.js'
-import { CategoryPage } from './components/CategoryPage.js'
-import { DivingMap, setupMapInteractions } from './components/DivingMap.js'
-
-
-let products = [];
-let categories = [];
-// import { categories } from './data/products.js'; // REMOVED STATIC IMPORT
-
-
-import { seo } from './utils/seo.js'
-import { Cart } from './utils/cart.js'
-import { CartPage, setupCartInteractions } from './components/CartPage.js'
-import { PaymentResult } from './components/PaymentResult.js'
-import { FilterSidebar, setupFilterInteractions } from './components/FilterSidebar.js'
-
+/* =============================== Durum =============================== */
+const state = { products: [], categories: [], productsLoaded: false };
 const app = document.querySelector('#app');
 
-// Internal router state
-let currentRoute = { page: 'home', params: {} };
+app.innerHTML = `
+  <a href="#main-content" class="skip-link">İçeriğe geç</a>
+  <div id="header-root"></div>
+  <main id="main-content" tabindex="-1"></main>
+  <div id="footer-root"></div>`;
+document.body.insertAdjacentHTML('beforeend', AuthModal() + ChatWidget());
 
-function navigate(page, params = {}) {
-  currentRoute = { page, params };
-  render();
-  window.scrollTo(0, 0);
+const headerRoot = document.getElementById('header-root');
+const main = document.getElementById('main-content');
+const footerRoot = document.getElementById('footer-root');
 
-  // Dynamic Title Update
-  if (page === 'home') document.title = 'Aqualora | Modern Online Alışveriş';
-  else if (page === 'cart') document.title = 'Sepetim | Aqualora';
-  else if (page === 'favorites') document.title = 'Favorilerim | Aqualora';
+/* =============================== Router =============================== */
+const ROUTES = [
+  { path: /^\/$/, page: 'home' },
+  { path: /^\/(urunler|urunler\.html)$/, page: 'products' },
+  { path: /^\/urun\/(.+)$/, page: 'product' },
+  { path: /^\/sepet$/, page: 'cart' },
+  { path: /^\/odeme$/, page: 'checkout' },
+  { path: /^\/odeme-sonuc$/, page: 'orderResult' },
+  { path: /^\/favoriler$/, page: 'favorites' },
+  { path: /^\/hesabim$/, page: 'account' },
+  { path: /^\/siparis-takip$/, page: 'track' },
+  { path: /^\/sifre-sifirla$/, page: 'reset' }
+];
+
+let current = { page: 'home', params: [] };
+
+function resolve(pathname) {
+  for (const r of ROUTES) {
+    const m = pathname.match(r.path);
+    if (m) return { page: r.page, params: m.slice(1) };
+  }
+  return { page: 'notFound', params: [] };
 }
 
-// Global click handler for links
-document.addEventListener('click', (e) => {
-  // Favorites Header Button
-  if (e.target.closest('.fav-header-btn')) {
-    navigate('favorites');
-    return;
-  }
+export function navigate(href, { replace = false } = {}) {
+  const url = new URL(href, location.origin);
+  if (url.origin !== location.origin) { location.assign(href); return; }
+  const samePage = url.pathname === location.pathname;
+  history[replace ? 'replaceState' : 'pushState']({}, '', url.pathname + url.search + url.hash);
+  renderPage({ scroll: !samePage || !replace });
+  closeMobileMenu();
+}
 
-  // Handle 'Ürünleri Gör' & 'Alışverişe Başla' Navigation
-  if (e.target.closest('#view-all-products') || e.target.id === 'view-all-products' || e.target.id === 'start-shopping-btn') {
-    e.preventDefault();
-    window.location.href = '/urunler.html';
-    return;
-  }
+window.addEventListener('popstate', () => renderPage({ scroll: false }));
 
-  const link = e.target.closest('a');
-  const href = link?.getAttribute('href');
-  if (link && href && href.startsWith('#')) {
-    e.preventDefault();
+/* =============================== Layout =============================== */
+function renderHeader() {
+  const q = current.page === 'products' ? new URLSearchParams(location.search).get('q') || '' : '';
+  headerRoot.innerHTML = Header(Auth.user, state.categories, { cartCount: Cart.count(), favCount: Favorites.ids.size, query: q });
+  updateBadges();
+}
+function renderFooter() { footerRoot.innerHTML = Footer(state.categories); }
 
-    if (href === '#') return; // Ignore empty links
-    if (href === '/' || href === '#home') {
-      // If we are on urunler.html, we might want to go back to root index.html
-      if (window.location.pathname.includes('urunler.html')) {
-        window.location.href = '/';
-        return;
-      }
-      navigate('home');
-      return;
+function updateBadges() {
+  const set = (sel, n) => document.querySelectorAll(sel).forEach(el => { el.textContent = n; el.hidden = !n; });
+  set('.cart-count', Cart.count());
+  set('.fav-count', Favorites.ids.size);
+}
+
+window.addEventListener('scroll', () => {
+  document.querySelector('.site-header')?.classList.toggle('scrolled', window.scrollY > 50);
+}, { passive: true });
+
+/* =============================== Sayfalar =============================== */
+const loadingHTML = '<div class="container page-pad"><p class="loading">Yükleniyor…</p></div>';
+
+function readFilters() {
+  const p = new URLSearchParams(location.search);
+  return {
+    q: (p.get('q') || '').trim(),
+    category: p.get('category') || '',
+    subCategory: p.get('subCategory') || '',
+    brands: (p.get('brand') || '').split(',').filter(Boolean),
+    maxPrice: Number(p.get('maxPrice')) || 0,
+    inStock: p.get('inStock') === '1',
+    sort: p.get('sort') || ''
+  };
+}
+
+const normTR = (s) => String(s || '').toLocaleLowerCase('tr-TR')
+  .replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ö/g, 'o').replace(/ç/g, 'c');
+
+function applyFilters(list, f) {
+  const cat = state.categories.find(c => c.id === f.category || c.slug === f.category);
+  const sub = cat?.sub?.find(s => s.slug === f.subCategory);
+  const tokens = normTR(f.q).split(/\s+/).filter(t => t.length > 1);
+  let out = list.filter(p => {
+    if (cat && p.categoryId !== cat.id && p.category !== cat.title) return false;
+    if (f.subCategory && sub && p.subCategoryId !== sub.id && p.subCategory !== sub.name) return false;
+    if (f.brands.length && !f.brands.includes(p.brand)) return false;
+    if (f.maxPrice && p.price > f.maxPrice) return false;
+    if (f.inStock && !p.inStock) return false;
+    if (tokens.length) {
+      const hay = normTR(`${p.name} ${p.brand} ${p.category} ${p.subCategory} ${p.description}`);
+      if (!tokens.every(t => hay.includes(t))) return false;
     }
+    return true;
+  });
+  const sorters = {
+    price_asc: (a, b) => a.price - b.price,
+    price_desc: (a, b) => b.price - a.price,
+    newest: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+    popular: (a, b) => b.views - a.views
+  };
+  if (sorters[f.sort]) out = [...out].sort(sorters[f.sort]);
+  return out;
+}
 
-    // ... existing logic ...
-
-    if (href.startsWith('#category-')) {
-      const catId = href.replace('#category-', '');
-      navigate('category', { id: catId });
-    }
-  } else if (link && link.classList.contains('logo')) {
-    e.preventDefault();
-    if (window.location.pathname.includes('urunler.html')) {
-      window.location.href = '/';
-      return;
-    }
-    navigate('home');
-  }
-
-  // Cart Button Click
-  if (e.target.closest('.cart-btn')) {
-    navigate('cart');
-  }
-
-  // Product Card Click (Navigation)
-  const productCard = e.target.closest('.product-card');
-  if (productCard && !e.target.closest('button') && !e.target.closest('.add-cart-btn') && !e.target.closest('.fav-btn')) {
-    const id = productCard.dataset.id; // Keep as string first to safely parse
-    // Try matching both string and number
-    const p = products.find(prod => prod.id == id || prod._id == id);
-
-    if (p) {
-      e.preventDefault();
-      navigate('product', { id: p.id || p._id });
-      return;
-    }
-  }
-
-  // Add to Cart Button Click
-  if (e.target.closest('.add-cart-btn')) {
-    e.preventDefault();
-    const btn = e.target.closest('.add-cart-btn');
-
-    // Check if it's the large PDP button
-    if (btn.classList.contains('large')) {
-      const idParam = currentRoute.params.id;
-      // Handle both string and number IDs
-      const p = products.find(prod => (prod._id == idParam || prod.id == idParam));
-      if (p) {
-        // Check if product has variants and if a variant is selected
-        const selectedVariant = document.querySelector('.size-btn.active')?.dataset.size;
-        Cart.add(p, selectedVariant);
-      }
-      return;
-    }
-
-    let productToAdd = null;
-    if (e.target.closest('.product-card')) {
-      const card = e.target.closest('.product-card');
-      const idRaw = card.dataset.id;
-      // Try to find by direct match (string or number)
-      productToAdd = products.find(p => (p._id == idRaw || p.id == idRaw));
-      e.stopPropagation(); // prevent navigation
-    }
-
-    if (productToAdd) {
-      if (productToAdd.variants && productToAdd.variants.length > 0) {
-        // If has variants, go to detail page to select size
-        navigate('product', { id: productToAdd.id || productToAdd._id });
-      } else {
-        // No variants, add directly
-        Cart.add(productToAdd);
-      }
-    }
-  }
-
-  // Variant Size Button Click (Product Detail Page)
-  if (e.target.closest('.size-btn')) {
-    const sizeBtn = e.target.closest('.size-btn');
-
-    // Don't allow selecting out-of-stock variants
-    if (sizeBtn.disabled) return;
-
-    // Remove active from all size buttons
-    document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('active'));
-
-    // Add active to clicked button
-    sizeBtn.classList.add('active');
-
-    // Enable the "Add to Cart" button
-    const addCartBtn = document.querySelector('.add-cart-btn.large');
-    if (addCartBtn) {
-      addCartBtn.disabled = false;
-      addCartBtn.textContent = 'SEPETE EKLE';
-      addCartBtn.classList.add('pulse-glow');
-    }
-  }
-
-  // Favorite Button Click (Card & Detail)
-  // Use .fav-btn for Card, .favorite-btn for Detail
-  const favBtn = e.target.closest('.fav-btn, .favorite-btn');
-  if (favBtn) {
-    e.stopPropagation();
-    const id = favBtn.dataset.id ? parseInt(favBtn.dataset.id) : (currentRoute.page === 'product' ? parseInt(currentRoute.params.id) : null);
-    if (id) {
-      toggleFavorite(id);
-
-      // Optimistic UI update
-      if (favBtn.classList.contains('active')) {
-        favBtn.classList.remove('active');
-        favBtn.querySelector('svg').setAttribute('fill', 'none');
-        // If on favorites page, remove card
-        if (currentRoute.page === 'favorites') {
-          render();
-        }
-      } else {
-        favBtn.classList.add('active');
-        favBtn.querySelector('svg').setAttribute('fill', 'currentColor');
-      }
-    }
-  }
-});
-
-// Update Cart Count
-Cart.subscribe((items) => {
-  const counters = document.querySelectorAll('.cart-count');
-  counters.forEach(c => c.textContent = items.length);
-});
-
-function render() {
-  const commonUI = Header(Auth.user, categories) + AIAssistant();
-  const footerUI = Footer();
-
-  if (window.location.pathname.includes('urunler.html')) {
-    // Products Page Logic with Filtering
-    const renderProductsPage = (filtered = products) => {
-      app.innerHTML = `
-        ${commonUI}
-        <div id="main-content" class="container" style="margin-top: 120px;">
-          <div class="products-page-layout">
-            ${FilterSidebar(categories, products)}
-            <div class="products-container">
-              ${ProductList(filtered)}
-            </div>
-          </div>
+function productsPage() {
+  const f = readFilters();
+  const list = applyFilters(state.products, f);
+  const cat = state.categories.find(c => c.id === f.category);
+  seo.set({
+    title: f.q ? `"${f.q}" arama sonuçları` : (cat ? cat.title : 'Tüm Ürünler'),
+    description: `${cat ? cat.title : 'Dalış, yüzme ve outdoor'} ürünlerinde en uygun fiyatlar.`,
+    noindex: !!f.q
+  });
+  return `
+    <div class="container page-pad">
+      <h1 class="page-title">${f.q ? `Arama: "${e(f.q)}"` : e(cat?.title || 'Tüm Ürünler')}</h1>
+      <div class="products-page-layout" id="filters">
+        ${FilterSidebar(state.categories, state.products, f)}
+        <div class="products-container">
+          ${SortBar(list.length, f)}
+          ${ProductGrid(list)}
         </div>
-        ${footerUI}
-      `;
-      setupCommonInteractions();
-
-      // Pass handlers with closure to use latest 'products'
-      setupFilterInteractions((filterData) => {
-        const newFiltered = products.filter(p => {
-          // Compatibility: p.category is always present (string) even if originating from DB relations due to server transform
-          const matchesCategory = filterData.categories.length === 0 || filterData.categories.includes(p.category);
-          const matchesBrand = filterData.brands.length === 0 || filterData.brands.includes(p.brand);
-
-          // SubCategory Check from URL if present (initial load handled below, but sidebar might need to respect it? 
-          // Usually sidebar overrides. Let's keep sidebar as primary filter source if interacted.)
-
-          let price = 0;
-          if (typeof p.price === 'number') price = p.price;
-          else if (typeof p.price === 'string') price = parseFloat(p.price.replace(' ₺', '').replace(/\./g, '').replace(',', '.'));
-
-          const matchesPrice = price <= filterData.maxPrice;
-
-          return matchesCategory && matchesBrand && matchesPrice;
-        });
-
-        const container = document.querySelector('.products-container');
-        if (container) {
-          container.innerHTML = ProductList(newFiltered);
-          setupProductInteractions();
-        }
-      });
-
-      // Handle Initial URL filtering (e.g. ?subCategory=elbiseler)
-      const urlParams = new URLSearchParams(window.location.search);
-      const subCatParam = urlParams.get('subCategory');
-      const catParam = urlParams.get('category'); // Optional category ID
-
-      if (subCatParam) {
-        const initialFiltered = products.filter(p => {
-          // Match slug or name
-          // API returns subCategory as string Name, but link uses slug.
-          // We need to robustly match. Ideally we transform p.subCategory to slug.
-          const pSubSlug = (p.subCategory || '').toLowerCase().replace(/\s+/g, '-');
-          return pSubSlug === subCatParam || p.subCategory === subCatParam;
-        });
-
-        // Update UI
-        const container = document.querySelector('.products-container');
-        if (container) {
-          container.innerHTML = ProductList(initialFiltered);
-          setupProductInteractions();
-        }
-      }
-
-
-    };
-
-    renderProductsPage();
-  }
-  else if (currentRoute.page === 'home') {
-    seo.setDefaults();
-
-    // Featured Products Logic
-    const featuredProducts = products.filter(p => p.isFeatured === true);
-    // If no featured products, maybe show 4 random ones or just none. Requirement says: "Featured products appear on homepage"
-    // Let's fallback to first 4 if none marked, or just show them.
-    const displayProducts = featuredProducts.length > 0 ? featuredProducts : products.slice(0, 4);
-
-    // Modify ProductList to change title if needed or wrap it
-    // ProductList component has hardcoded title "Öne Çıkan Ekipmanlar" which fits perfectly.
-
-    app.innerHTML = `
-      ${commonUI}
-      <div id="main-content">
-          ${Hero()}
-          ${ProductList(displayProducts)}
-          ${DivingMap()}
       </div>
-      ${footerUI}
-    `;
-    setupHomePageInteractions();
-  }
-  else if (currentRoute.page === 'category') {
-    const catId = currentRoute.params.id;
-    // Categories now have mongodb _id, but we might be using string IDs or slugs from links.
-    // The links in static data used string IDs like 'scuba'.
-    // The new DB data has _id. 
-    // We need to match robustly.
-    const category = categories.find(c => c.id === catId || c.slug === catId || c._id === catId);
-    const catTitle = category?.title || 'Kategori';
-
-    seo.update(catTitle, `${catTitle} ekipmanlarında en iyi fiyatlar.`);
-
-    app.innerHTML = `
-      ${commonUI}
-      <div id="main-content">
-        ${CategoryPage(catId, catTitle, products)}
-      </div>
-      ${footerUI}
-    `;
-    setupCommonInteractions();
-  }
-  else if (currentRoute.page === 'product') {
-    const productId = parseInt(currentRoute.params.id);
-    const product = products.find(p => (p.id || p._id) === productId);
-
-    // Call View Counter API
-    // Fire and forget, don't await blocking UI
-    fetch(`${API_BASE}/api/products/${productId}/view`, { method: 'POST' }).catch(console.error);
-
-    seo.update(product.name, `${product.name} - ${typeof product.price === 'number' ? product.price.toLocaleString('tr-TR') : product.price} TL. Teknik özellikler ve detaylar.`);
-    // Add Structured Data
-    seo.setJsonLd({
-      "@context": "https://schema.org/",
-      "@type": "Product",
-      "name": product.name,
-      "image": product.image,
-      "description": `Professional ${product.name} for underwater sports.`,
-      "brand": {
-        "@type": "Brand",
-        "name": product.brand
-      },
-      "offers": {
-        "@type": "Offer",
-        "priceCurrency": "TRY",
-        "price": typeof product.price === 'string' ? product.price.replace(' ₺', '').replace('.', '') : product.price,
-        "availability": "https://schema.org/InStock"
-      }
-    });
-
-    app.innerHTML = `
-      ${commonUI}
-      <div id="main-content">
-          ${ProductDetail(product)}
-      </div>
-      ${footerUI}
-    `;
-    setupCommonInteractions();
-
-    const backBtn = document.querySelector('.back-btn');
-    if (backBtn) {
-      backBtn.addEventListener('click', () => {
-        window.history.back();
-      });
-    }
-  }
-  else if (currentRoute.page === 'favorites') {
-    // Filter products that are in user favorites
-    // If user is not logged in / logic not ready, fallback to empty
-    let favProducts = [];
-    if (window.userFavorites && window.userFavorites.length > 0) {
-      favProducts = products.filter(p => window.userFavorites.includes(p.id) || window.userFavorites.includes(p._id));
-    }
-
-    app.innerHTML = `
-      ${commonUI}
-      <div id="main-content" class="container" style="margin-top: 100px;">
-         <h1 class="section-title">Favorilerim (${favProducts.length})</h1>
-         ${favProducts.length > 0
-        ? `<div class="product-grid">${ProductList(favProducts)}</div>`
-        : '<p style="text-align:center; padding: 50px; color: #888;">Henüz favori ürününüz yok.</p>'}
-      </div>
-      ${footerUI}
-    `;
-    setupCommonInteractions();
-  }
-  else if (currentRoute.page === 'cart') {
-    app.innerHTML = `
-      ${commonUI}
-      <div id="main-content" style="margin-top: 100px;">
-          ${CartPage()}
-      </div>
-      ${footerUI}
-    `;
-    setupCommonInteractions();
-    setupCartInteractions();
-  }
-  else if (currentRoute.page === 'payment-result') {
-    // This page might be hit by redirection with query params ?status=success
-    app.innerHTML = `
-      ${commonUI}
-      <div id="main-content" style="margin-top: 100px;">
-          ${PaymentResult()}
-      </div>
-      ${footerUI}
-    `;
-    setupCommonInteractions();
-  }
-
-  // Setup Auth Interactions (Modal, etc)
-  setupAuthInteractions();
+    </div>`;
 }
 
-function setupAuthInteractions() {
-  if (window.__authInitialized) return;
-  window.__authInitialized = true;
-
-  console.log('🔧 setupAuthInteractions BAŞLADI');
-
-  const getElements = () => ({
-    modal: document.querySelector('#auth-modal'),
-    loginForm: document.querySelector('#login-form'),
-    registerForm: document.querySelector('#register-form'),
-    closeBtn: document.querySelector('.close-modal'),
-    modalOverlay: document.querySelector('.modal-overlay')
-  });
-
-  const closeModal = () => {
-    const { modal, loginForm, registerForm } = getElements();
-    if (!modal) return;
-
-    console.log('❌ Modal kapatıldı');
-    modal.classList.remove('active');
-    document.body.classList.remove('modal-open');
-
-    if (loginForm) {
-      loginForm.reset();
-      const err = loginForm.querySelector('.error-msg');
-      if (err) err.textContent = '';
-    }
-    if (registerForm) {
-      registerForm.reset();
-      const err = registerForm.querySelector('.error-msg');
-      if (err) err.textContent = '';
-    }
-  };
-
-  const openModal = (type = 'login') => {
-    const { modal, loginForm, registerForm } = getElements();
-    if (!modal || !loginForm || !registerForm) return;
-
-    if (type === 'login') {
-      loginForm.classList.remove('hidden');
-      registerForm.classList.add('hidden');
-    } else {
-      registerForm.classList.remove('hidden');
-      loginForm.classList.add('hidden');
-    }
-
-    modal.classList.add('active');
-    document.body.classList.add('modal-open');
-  };
-
-  // Global delegation for triggers and close
-  document.addEventListener('click', async (e) => {
-    const loginTrigger = e.target.closest('#login-trigger');
-    const registerTrigger = e.target.closest('#register-trigger');
-    const closeBtn = e.target.closest('.close-modal');
-    const overlay = e.target.closest('.modal-overlay');
-    const logoutBtn = e.target.closest('.logout-btn');
-    const switchToRegister = e.target.closest('.switch-to-register');
-    const switchToLogin = e.target.closest('.switch-to-login');
-    const inlineRegister = e.target.closest('.inline-switch-register');
-
-    if (loginTrigger) {
-      e.preventDefault();
-      openModal('login');
-    } else if (registerTrigger) {
-      e.preventDefault();
-      openModal('register');
-    } else if (closeBtn || overlay) {
-      closeModal();
-    } else if (logoutBtn) {
-      e.preventDefault();
-      await Auth.logout();
-      Cart.items = [];
-      Cart.notify();
-    } else if (switchToRegister || inlineRegister) {
-      e.preventDefault();
-      openModal('register');
-    } else if (switchToLogin) {
-      e.preventDefault();
-      openModal('login');
-    }
-  });
-
-  // Form Submits - these need direct attachment or specific delegation
-  // Since forms might be re-rendered, delegation on document is safer if Header(Auth.user) replaces them
-  document.addEventListener('submit', async (e) => {
-    if (e.target.id === 'login-form') {
-      e.preventDefault();
-      const form = e.target;
-      const res = await Auth.login(form.email.value, form.password.value);
-      if (res.success) {
-        closeModal();
-        Cart.fetchCart();
-      } else {
-        const errorDiv = form.querySelector('.error-msg');
-        if (errorDiv) {
-          errorDiv.innerHTML = `${res.error || 'Giriş başarısız'}. <a href="#" class="inline-switch-register">Üye ol</a>`;
-        }
-      }
-    } else if (e.target.id === 'register-form') {
-      e.preventDefault();
-      const form = e.target;
-      // Fixed parameter order: email, password, name
-      const res = await Auth.register(form.email.value, form.password.value, form.name.value);
-      if (res.success) {
-        closeModal();
-        Cart.fetchCart();
-      } else {
-        const errorDiv = form.querySelector('.error-msg');
-        if (errorDiv) errorDiv.textContent = res.error || 'Kayıt başarısız';
-      }
-    }
-  });
-
-  console.log('✅ setupAuthInteractions TAMAM');
+function updateFilterUrl(mutator) {
+  const p = new URLSearchParams(location.search);
+  mutator(p);
+  [...p.keys()].forEach(k => { if (!p.get(k)) p.delete(k); });
+  const qs = p.toString();
+  navigate(`/urunler${qs ? `?${qs}` : ''}`, { replace: true });
 }
 
-function setupHomePageInteractions() {
-  setupCommonInteractions();
-  setupMapInteractions();
-}
-
-function setupCommonInteractions() {
-  setupHeader();
-  setupAIAssistant();
-  setupProductInteractions(); // For cards in lists
-
-  // Attach click listeners to all product cards rendered
-  document.querySelectorAll('.product-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const id = card.dataset.id;
-      navigate('product', { id });
+function mountProducts(root) {
+  const sidebar = root.querySelector('.filter-sidebar');
+  sidebar?.addEventListener('change', (ev) => {
+    const t = ev.target;
+    updateFilterUrl(p => {
+      if (t.name === 'category') { p.set('category', t.value); p.delete('subCategory'); }
+      if (t.name === 'subCategory') p.set('subCategory', t.value);
+      if (t.name === 'brand') p.set('brand', [...sidebar.querySelectorAll('input[name=brand]:checked')].map(x => x.value).join(','));
+      if (t.name === 'maxPrice') p.set('maxPrice', t.value === t.max ? '' : t.value);
+      if (t.name === 'inStock') p.set('inStock', t.checked ? '1' : '');
     });
   });
+  sidebar?.querySelector('#price-range')?.addEventListener('input', (ev) => {
+    sidebar.querySelector('#price-value').textContent = `${Number(ev.target.value).toLocaleString('tr-TR')} ₺`;
+  });
+  sidebar?.querySelector('#clear-filters')?.addEventListener('click', () => {
+    const q = new URLSearchParams(location.search).get('q');
+    navigate(q ? `/urunler?q=${encodeURIComponent(q)}` : '/urunler', { replace: true });
+  });
+  root.querySelector('#sort-select')?.addEventListener('change', (ev) => updateFilterUrl(p => p.set('sort', ev.target.value)));
+  root.querySelector('.filter-toggle')?.addEventListener('click', () => root.querySelector('.products-page-layout')?.classList.toggle('show-filters'));
 }
 
-// --- INITIALIZATION ---
+async function productPage(root) {
+  const key = current.params[0] || '';
+  const id = key.match(/([a-f0-9]{24})$/i)?.[1] || decodeURIComponent(key);
+  let product = state.products.find(p => p.id === id || String(p.legacyId) === id || p.slug === id);
+  if (!product) {
+    try { product = await api.get(`/products/${encodeURIComponent(id)}`); } catch { product = null; }
+  }
+  if (!product) {
+    root.innerHTML = notFoundHTML('Ürün bulunamadı veya satıştan kaldırıldı.');
+    seo.set({ title: 'Ürün bulunamadı', noindex: true });
+    return;
+  }
+  // Eski/eksik URL'yi kanonik adrese çevir
+  const canonical = productUrl(product);
+  if (location.pathname !== canonical) history.replaceState({}, '', canonical);
 
-async function fetchCategoriesFromAPI() {
-  try {
-    const res = await fetch(`${API_BASE}/api/categories`);
-    return await res.json();
-  } catch (e) {
-    console.error('Kategoriler yüklenemedi', e);
-    return [];
+  seo.set({
+    title: product.name,
+    description: (product.description || `${product.brand} ${product.name} — ${product.category}`).slice(0, 160),
+    image: product.image,
+    jsonLd: {
+      '@context': 'https://schema.org/', '@type': 'Product', name: product.name, image: product.image ? [product.image] : undefined,
+      sku: product.id, brand: product.brand ? { '@type': 'Brand', name: product.brand } : undefined,
+      offers: {
+        '@type': 'Offer', priceCurrency: 'TRY', price: product.price.toFixed(2), url: location.href,
+        availability: product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'
+      }
+    }
+  });
+  root.innerHTML = ProductDetail(product);
+  root.dataset.productId = product.id;
+  api.post(`/products/${product.id}/view`).catch(() => { });
+
+  const related = state.products.filter(p => p.id !== product.id && p.categoryId === product.categoryId && p.inStock).slice(0, 4);
+  if (related.length) {
+    root.insertAdjacentHTML('beforeend', ProductList(related, { title: 'Benzer <span class="highlight">Ürünler</span>', showAll: false }));
+    setupProductInteractions(root);
   }
 }
 
-// Initial render to show site immediately (even if backend is down)
-// --- INITIALIZATION ---
+function notFoundHTML(msg = 'Aradığınız sayfa bulunamadı.') {
+  return `<div class="container page-pad"><div class="glass-panel result-hero error"><h1>404</h1><p>${e(msg)}</p>
+    <a href="/" class="btn primary-btn">Ana sayfa</a> <a href="/urunler" class="btn secondary-btn">Ürünler</a></div></div>`;
+}
 
-(async () => {
-  try {
-    // Parallel fetch for speed
-    const [prods, cats] = await Promise.all([
-      fetchProductsFromAPI(),
-      fetchCategoriesFromAPI()
-    ]);
-    products = prods;
-    categories = cats;
-    render();
-    // Fetch Favorites after render (or during)
-    updateFavoritesState();
-  } catch (e) {
-    console.error('Veri yüklenemedi', e);
-    render();
+async function renderPage({ scroll = true } = {}) {
+  current = resolve(location.pathname);
+  const root = main;
+  delete root.dataset.productId;
+  const needsProducts = ['home', 'products', 'favorites'].includes(current.page);
+  if (needsProducts && !state.productsLoaded) { root.innerHTML = loadingHTML; return; }
+
+  switch (current.page) {
+    case 'home': {
+      seo.set({ description: `${SITE.name}: tüplü dalış, serbest dalış, yüzme ve outdoor ekipmanları. Güvenli ödeme, hızlı kargo, kolay iade.` });
+      const featured = state.products.filter(p => p.isFeatured && p.inStock);
+      const show = (featured.length ? featured : state.products.filter(p => p.inStock)).slice(0, 8);
+      root.innerHTML = Hero() + ProductList(show) + DivingMap();
+      setupProductInteractions(root);
+      setupMapInteractions();
+      break;
+    }
+    case 'products':
+      root.innerHTML = productsPage();
+      mountProducts(root);
+      setupProductInteractions(root);
+      break;
+    case 'product':
+      root.innerHTML = loadingHTML;
+      await productPage(root);
+      break;
+    case 'cart':
+      seo.set({ title: 'Sepetim', noindex: true });
+      root.innerHTML = CartPage();
+      break;
+    case 'checkout':
+      seo.set({ title: 'Ödeme', noindex: true });
+      root.innerHTML = CheckoutPage();
+      mountCheckout(root, navigate);
+      break;
+    case 'orderResult':
+      seo.set({ title: 'Sipariş durumu', noindex: true });
+      root.innerHTML = OrderResultPage();
+      mountOrderResult(root);
+      break;
+    case 'favorites': {
+      seo.set({ title: 'Favorilerim', noindex: true });
+      const favs = state.products.filter(p => Favorites.has(p.id));
+      root.innerHTML = `<div class="container page-pad"><h1 class="page-title">Favorilerim (${favs.length})</h1>
+        ${!Auth.user ? '<p>Favorilerinizi kaydetmek için <button class="link-btn" data-auth="login">giriş yapın</button>.</p>'
+          : (favs.length ? ProductGrid(favs) : '<p class="no-results">Henüz favori ürününüz yok.</p>')}</div>`;
+      setupProductInteractions(root);
+      break;
+    }
+    case 'account':
+      seo.set({ title: 'Hesabım', noindex: true });
+      root.innerHTML = AccountPage();
+      mountAccount(root);
+      break;
+    case 'track':
+      seo.set({ title: 'Sipariş Takibi', noindex: true });
+      root.innerHTML = OrderTrackPage();
+      mountOrderTrack(root);
+      break;
+    case 'reset':
+      seo.set({ title: 'Şifre sıfırlama', noindex: true });
+      root.innerHTML = ResetPasswordPage();
+      mountResetPassword(root, navigate);
+      break;
+    default:
+      seo.set({ title: 'Sayfa bulunamadı', noindex: true });
+      root.innerHTML = notFoundHTML();
   }
-})();
+  // Header arama kutusunu güncel tut
+  const q = current.page === 'products' ? new URLSearchParams(location.search).get('q') || '' : '';
+  document.querySelectorAll('[data-search] input[name=q]').forEach(i => { if (document.activeElement !== i) i.value = q; });
+  if (scroll) window.scrollTo(0, 0);
+}
 
-// Background session check (non-blocking)
-Auth.subscribe(() => {
-  render();
-  updateFavoritesState();
+/* =============================== Giriş penceresi =============================== */
+const modal = document.getElementById('auth-modal');
+let lastFocus = null;
+
+function openAuth(view = 'login') {
+  lastFocus = document.activeElement;
+  modal.hidden = false;
+  modal.classList.add('active');
+  document.body.classList.add('modal-open');
+  modal.querySelectorAll('.auth-form').forEach(f => { f.hidden = f.dataset.view !== view; });
+  modal.querySelector(`.auth-form[data-view="${view}"] input`)?.focus();
+  closeMobileMenu();
+}
+function closeAuth() {
+  modal.classList.remove('active');
+  modal.hidden = true;
+  document.body.classList.remove('modal-open');
+  modal.querySelectorAll('form').forEach(f => { f.reset(); f.querySelector('.error-msg').textContent = ''; });
+  lastFocus?.focus?.();
+}
+modal.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') closeAuth(); });
+
+async function handleAuthSubmit(form) {
+  const err = form.querySelector('.error-msg');
+  const btn = form.querySelector('button[type=submit]');
+  err.textContent = '';
+  btn.disabled = true;
+  try {
+    if (form.id === 'login-form') {
+      const u = await Auth.login(form.email.value, form.password.value);
+      toast(`Hoş geldin, ${u.name?.split(' ')[0] || ''}`, 'success');
+      closeAuth();
+    } else if (form.id === 'register-form') {
+      if (!form.kvkk.checked) throw new Error('Devam etmek için KVKK Aydınlatma Metni\'ni onaylayın');
+      await Auth.register({ name: form.name.value, email: form.email.value, password: form.password.value, kvkk: true, marketing: form.marketing.checked });
+      toast('Üyeliğiniz oluşturuldu 🎉', 'success');
+      closeAuth();
+    } else if (form.id === 'forgot-form') {
+      const d = await Auth.forgotPassword(form.email.value);
+      err.textContent = d.message;
+      err.classList.add('ok');
+    }
+  } catch (ex) {
+    err.classList.remove('ok');
+    err.textContent = ex.details ? Object.values(ex.details).join(' · ') : ex.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* =============================== Mobil menü =============================== */
+function openMobileMenu() {
+  const m = document.getElementById('mobile-menu');
+  if (!m) return;
+  m.hidden = false;
+  document.querySelector('.hamburger')?.setAttribute('aria-expanded', 'true');
+  document.body.classList.add('modal-open');
+}
+function closeMobileMenu() {
+  const m = document.getElementById('mobile-menu');
+  if (!m || m.hidden) return;
+  m.hidden = true;
+  document.querySelector('.hamburger')?.setAttribute('aria-expanded', 'false');
+  if (!modal.classList.contains('active')) document.body.classList.remove('modal-open');
+}
+
+/* =============================== Olay delegasyonu =============================== */
+function isInternalLink(a) {
+  if (!a || a.target || a.hasAttribute('download') || a.hasAttribute('data-external')) return false;
+  const href = a.getAttribute('href');
+  if (!href || !href.startsWith('/') || href.startsWith('//')) return false;
+  const path = href.split(/[?#]/)[0];
+  return !path.startsWith('/api') && !/\.[a-z0-9]+$/i.test(path);
+}
+
+document.addEventListener('click', async (ev) => {
+  const t = ev.target;
+  if (ev.defaultPrevented || ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey) return;
+
+  const authBtn = t.closest('[data-auth]');
+  if (authBtn) { ev.preventDefault(); openAuth(authBtn.dataset.auth); return; }
+  if (t.closest('[data-close-modal]')) { closeAuth(); return; }
+  if (t.closest('.hamburger')) { openMobileMenu(); return; }
+  if (t.closest('.mobile-menu-close') || t === document.getElementById('mobile-menu')) { closeMobileMenu(); return; }
+  if (t.closest('.logout-btn')) {
+    ev.preventDefault();
+    await Auth.logout();
+    toast('Çıkış yapıldı');
+    navigate('/');
+    return;
+  }
+
+  const favBtn = t.closest('[data-fav]');
+  if (favBtn) {
+    ev.preventDefault();
+    if (!(await Favorites.toggle(favBtn.dataset.fav))) { toast('Favorilere eklemek için giriş yapın'); openAuth('login'); }
+    return;
+  }
+
+  const addBtn = t.closest('[data-add]');
+  if (addBtn) {
+    ev.preventDefault();
+    const p = state.products.find(x => x.id === addBtn.dataset.add);
+    if (!p) return;
+    if (p.variants.length) { navigate(productUrl(p)); return; }
+    addBtn.disabled = true;
+    await Cart.add(p);
+    addBtn.disabled = false;
+    return;
+  }
+
+  const thumb = t.closest('[data-gallery]');
+  if (thumb) {
+    const main = document.getElementById('pdp-main-image');
+    if (main) main.src = thumb.dataset.gallery;
+    document.querySelectorAll('.pdp-thumb').forEach(b => b.classList.toggle('active', b === thumb));
+    return;
+  }
+
+  const sizeBtn = t.closest('.size-btn');
+  if (sizeBtn && !sizeBtn.disabled) {
+    document.querySelectorAll('.size-btn').forEach(b => b.classList.toggle('active', b === sizeBtn));
+    const add = document.querySelector('[data-add-detail]');
+    const qty = document.querySelector('.qty-input');
+    if (qty) { qty.max = Math.min(99, Number(sizeBtn.dataset.stock)); qty.value = Math.min(Number(qty.value) || 1, qty.max); }
+    if (add) { add.disabled = false; add.textContent = 'SEPETE EKLE'; }
+    return;
+  }
+
+  const qtyBtn = t.closest('[data-qty]');
+  if (qtyBtn) {
+    const input = qtyBtn.parentElement.querySelector('.qty-input');
+    input.value = Math.max(1, Math.min(Number(input.max) || 99, (Number(input.value) || 1) + Number(qtyBtn.dataset.qty)));
+    return;
+  }
+
+  const addDetail = t.closest('[data-add-detail]');
+  if (addDetail) {
+    const id = addDetail.dataset.addDetail;
+    const p = state.products.find(x => x.id === id) || await api.get(`/products/${id}`).catch(() => null);
+    if (!p) return;
+    const size = document.querySelector('.size-btn.active')?.dataset.size || null;
+    const qty = Number(document.querySelector('.qty-input')?.value) || 1;
+    addDetail.disabled = true;
+    await Cart.add(p, size, qty);
+    addDetail.disabled = false;
+    return;
+  }
+
+  const cartQty = t.closest('[data-cart-qty]');
+  const cartRemove = t.closest('[data-cart-remove]');
+  if (cartQty || cartRemove) {
+    const row = t.closest('.cart-item');
+    const pid = row.dataset.pid;
+    const variant = row.dataset.variant || null;
+    if (cartRemove) await Cart.remove(pid, variant);
+    else {
+      const line = Cart.items.find(i => i.productId === pid && (i.selectedVariant || null) === variant);
+      await Cart.setQuantity(pid, variant, (line?.quantity || 1) + Number(cartQty.dataset.cartQty));
+    }
+    return;
+  }
+
+  const copy = t.closest('[data-copy]');
+  if (copy) {
+    navigator.clipboard?.writeText(copy.dataset.copy).then(() => toast('IBAN kopyalandı', 'success'));
+    return;
+  }
+
+  const cancel = t.closest('[data-cancel-order]');
+  if (cancel) {
+    if (!confirm('Siparişi iptal etmek istediğinize emin misiniz?')) return;
+    try {
+      await api.post(`/orders/${encodeURIComponent(cancel.dataset.cancelOrder)}/cancel`);
+      toast('Sipariş iptal edildi', 'success');
+      renderPage({ scroll: false });
+      loadProducts(); // stoklar güncellendi
+    } catch (ex) { toast(ex.message, 'error'); }
+    return;
+  }
+
+  const a = t.closest('a');
+  if (a?.classList.contains('disabled')) { ev.preventDefault(); return; }
+  if (isInternalLink(a)) {
+    ev.preventDefault();
+    navigate(a.getAttribute('href'));
+  }
 });
 
-// Logic for Favorites
-window.userFavorites = []; // Global store for simple UI sync
-async function updateFavoritesState() {
-  if (!Auth.user) {
-    window.userFavorites = [];
-    updateFavHeader();
-    return;
+document.addEventListener('submit', (ev) => {
+  const form = ev.target;
+  if (form.matches('#login-form, #register-form, #forgot-form')) {
+    ev.preventDefault();
+    handleAuthSubmit(form);
+  } else if (form.matches('[data-search]')) {
+    ev.preventDefault();
+    const q = form.q.value.trim();
+    navigate(q ? `/urunler?q=${encodeURIComponent(q)}` : '/urunler');
   }
+});
 
-  // Fetch from API
-  try {
-    const res = await fetch(`${API_BASE}/api/favorites`);
-    const data = await res.json();
-    // The API returns populated objects or IDs? The current logic in server returns populated objects.
-    // We need IDs for checking includes.
-    // Wait, endpoint logic in previous step: const dbUser = await User.findById(user._id).populate('favorites'); res.json(dbUser.favorites);
-    // So it's an array of product objects? OR is it array of IDs?
-    // Actually earlier step used populate('favorites'). So it returns Product Objects.
-    // We just need IDs for checking.
-    if (Array.isArray(data)) {
-      // Check if items are objects or strings
-      if (data.length > 0 && typeof data[0] === 'object') {
-        window.userFavorites = data.map(d => parseInt(d.id)); // Convert MongoDB _id to match product.id (wait, existing logic uses number IDs for products. Mongoose _id is string). 
-        // CRITICAL: My products in memory use 'id' (number) from seed. My user favorites reference _id (ObjectId).
-        // If I am using the seed data approach, I need to map carefully.
-        // The seeding logic in server.js creates products. 
-        // Let's assume for now we use the `id` field if it exists on the populated object or we might have an issue mixing ObjectId and Seed ID.
-        // Correction: The `Product` schema doesn't have a numeric `id` field defined, but `server.js` seed data might have it.
-        // Actually `initProducts` in server.js adds them to DB. DB generates _id.
-        // `fetchProductsFromAPI` returns DB objects which have `_id`.
-        // BUT `main.js` implementation currently relies on `p.id` (seed ID).
-        // Let's check `ProductList` and `ProductDetail`. They use `product.id`.
-        // The DB products might lose the numeric `id` unless I explicitly saved it??
-        // Wait. `server.js` seeding creates `new Product(p)`. If `p` has `id`, it's saved?
-        // `Product` schema in `models/Product.js` DOES NOT have `id`. So Mongoose drops it.
-        // This means `products.find(p => p.id === ...)` will FAIL if I fetch from API!
-        // Ah, unless I made `id` virtual or added it.
-      } else {
-        // assume strings (IDs)
-        window.userFavorites = data; // But these are _ids?
-      }
-    }
-  } catch (e) { console.log('Fav fetch err', e); }
-  updateFavHeader();
+/* =============================== Abonelikler =============================== */
+Auth.subscribe(async (user, event) => {
+  renderHeader();
+  if (event === 'login') {
+    await Promise.all([Cart.onLogin(), Favorites.load()]);
+  } else if (event === 'logout') {
+    Cart.onLogout();
+    Favorites.load();
+  }
+  if (['account', 'favorites', 'checkout', 'cart'].includes(current.page)) renderPage({ scroll: false });
+});
+
+Cart.subscribe(() => {
+  updateBadges();
+  if (current.page === 'cart') renderPage({ scroll: false });
+  if (current.page === 'checkout' && !document.getElementById('checkout-form')) renderPage({ scroll: false });
+});
+
+Favorites.subscribe((ids) => {
+  updateBadges();
+  document.querySelectorAll('[data-fav]').forEach(b => {
+    const on = ids.has(b.dataset.fav);
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on);
+    b.querySelector('svg')?.setAttribute('fill', on ? 'currentColor' : 'none');
+  });
+  if (current.page === 'favorites') renderPage({ scroll: false });
+});
+
+/* =============================== Çerez bildirimi =============================== */
+function cookieBanner() {
+  try { if (localStorage.getItem('aq_cookie_ok')) return; } catch { return; }
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="cookie-banner glass-panel" role="region" aria-label="Çerez bildirimi">
+      <p>Sitemiz yalnızca oturum ve sepetinizin çalışması için zorunlu çerezler kullanır; reklam/izleme çerezi kullanılmaz.
+        <a href="/kvkk.html#cerez">Çerez politikası</a></p>
+      <button class="btn primary-btn small" type="button">Anladım</button>
+    </div>`);
+  const b = document.querySelector('.cookie-banner');
+  b.querySelector('button').addEventListener('click', () => {
+    try { localStorage.setItem('aq_cookie_ok', '1'); } catch { /* */ }
+    b.remove();
+  });
 }
 
-// Correction for ID handling: 
-// If `products` come from API (MongoDB), they have `_id`. They do NOT have numeric `id`.
-// My App uses numeric `id` everywhere for routing and lookup!
-// I must have fixed this in previous sessions?
-// Let's look at `server.js` seeding.
-// `server.js`: const products = [ { id: 1, ... } ]
-// `Product` schema does not have `id`.
-// So when I save to Mongo, `id` is lost.
-// When I fetch `/api/products`, I get objects with `_id`.
-// Frontend code `products.find(p => p.id === parseInt(...))` will break.
-// I NEED TO PATCH THIS.
-// Either:
-// 1. Add `id: Number` to Product Schema.
-// 2. Or patch `server.js` to return `id` (virtual).
-// 3. Or refactor Frontend to use `_id`.
-
-// Given the "High Complexity" warning, I should do the safest least-change.
-// Adding `id: Number` to Schema and re-seeding is safest for existing frontend logic.
-// I will do that in next step if verification fails.
-// For now, let's assume `id` might be missing and this logic is risky. 
-// However, I see `parseInt` used a lot in `main.js`.
-// If I assume `id` is present, I'll continue.
-// Wait, I saw `models/Product.js` earlier. It relies on Mongoose defaults.
-// I will add a patch in `main.js` to Map _id to id if missing, or use _id if present.
-// Actually, `fetchProductsFromAPI` uses the response. 
-// If the backend `server.js` was modified to return mapped products ...
-// Provide a fallback in `updateFavoritesState`.
-
-async function toggleFavorite(id) {
-  if (!Auth.user) {
-    // Prompt login
-    const modal = document.querySelector('#auth-modal');
-    if (modal) {
-      modal.classList.add('active');
-      document.body.classList.add('modal-open');
-    }
-    return;
-  }
-
+/* =============================== Başlatma =============================== */
+async function loadProducts() {
   try {
-    const isFav = window.userFavorites.includes(id);
-    const method = isFav ? 'DELETE' : 'POST';
-    // We are sending `id`. If this is numeric ID, and backend expects ObjectId...
-    // Backend `User.favorites` is `ref: 'Product'`. Expects ObjectId.
-    // Use `_id` if possible.
-    const product = products.find(p => p.id === id);
-    const targetId = product ? product._id : id; // Use _id for backend call
-
-    const res = await fetch(`${API_BASE}/api/favorites/${targetId}`, { method });
-    if (res.ok) {
-      if (isFav) window.userFavorites = window.userFavorites.filter(favId => favId !== id);
-      else window.userFavorites.push(id);
-      updateFavHeader();
-    }
-  } catch (e) { console.error('Fav toggle fail', e); }
+    state.products = await api.get('/products');
+  } catch (ex) {
+    toast('Ürünler yüklenemedi. Lütfen sayfayı yenileyin.', 'error');
+    state.products = [];
+  }
+  state.productsLoaded = true;
 }
 
-function updateFavHeader() {
-  const badge = document.querySelector('.fav-count');
-  if (badge) {
-    badge.textContent = window.userFavorites?.length || 0;
-    badge.style.display = window.userFavorites?.length > 0 ? 'inline-block' : 'none'; // Only hide if 0? Or user preference.
-  }
-}
+(async function boot() {
+  current = resolve(location.pathname);
+  renderHeader();
+  renderFooter();
+  renderPage({ scroll: false });
+  setupChatWidget({ navigate, openAuth });
+  cookieBanner();
 
-// Non-blocking initialization
-(async () => {
-  try {
-    await Auth.checkSession();
-    // Cart.init() is internally async and non-blocking in its module
-  } catch (e) {
-    console.warn('Background check failed:', e);
+  const [cfg, cats] = await Promise.all([
+    api.get('/config').catch(() => null),
+    api.get('/categories').catch(() => []),
+    Auth.init(),
+    loadProducts()
+  ]);
+  if (cfg) Object.assign(runtime, cfg);
+  state.categories = cats;
+  if (runtime.storeMode === 'preview') {
+    document.body.classList.add('store-preview');
+    document.body.insertAdjacentHTML('afterbegin', `<div class="preview-banner" role="status">🌊 Mağazamız çok yakında satışa açılıyor — şu an ürünlerimizi inceleyebilirsiniz, siparişler henüz alınmıyor.</div>`);
+    const setH = () => document.body.style.setProperty('--banner-h', `${document.querySelector('.preview-banner')?.offsetHeight || 0}px`);
+    setH();
+    window.addEventListener('resize', setH, { passive: true });
+    if (current.page === 'checkout') renderPage({ scroll: false });
   }
+
+  await Promise.all([Cart.load(), Favorites.load()]);
+  renderHeader();
+  renderFooter();
+  renderPage({ scroll: false });
+
+  // Ödeme dönüşünde veya bağlantıdan gelince giriş penceresini aç: /?giris=1
+  if (new URLSearchParams(location.search).get('giris') === '1' && !Auth.user) openAuth('login');
 })();
-
-// Global interactions
-setupAuthInteractions();

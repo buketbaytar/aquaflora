@@ -253,10 +253,62 @@
         </header>
 
         <div class="nav-tabs">
+            <button class="nav-tab" onclick="switchTab('dashboard')">Özet</button>
+            <button class="nav-tab" onclick="switchTab('orders')">Siparişler</button>
+            <button class="nav-tab" onclick="switchTab('tickets')">Destek Talepleri</button>
             <button class="nav-tab active" onclick="switchTab('products')">Ürünler</button>
             <button class="nav-tab" onclick="switchTab('categories')">Kategoriler</button>
             <button class="nav-tab" onclick="switchTab('subcategories')">Alt Kategoriler</button>
             <button class="nav-tab" onclick="switchTab('brands')">Markalar</button>
+        </div>
+
+        <!-- DASHBOARD SECTION -->
+        <div id="section-dashboard" class="section">
+            <div id="dashboard-content">Yükleniyor...</div>
+        </div>
+
+        <!-- ORDERS SECTION -->
+        <div id="section-orders" class="section">
+            <div style="margin-bottom: 20px; display:flex; gap:10px; flex-wrap:wrap;">
+                <select id="orders-status-filter" onchange="loadOrders()">
+                    <option value="">Tüm durumlar</option>
+                    <option value="pending_payment">Ödeme bekleniyor</option>
+                    <option value="paid">Ödeme alındı</option>
+                    <option value="preparing">Hazırlanıyor</option>
+                    <option value="shipped">Kargoda</option>
+                    <option value="delivered">Teslim edildi</option>
+                    <option value="refund_requested">İade talebi</option>
+                    <option value="cancelled">İptal</option>
+                    <option value="payment_failed">Ödeme başarısız</option>
+                </select>
+                <input type="search" id="orders-search" placeholder="Sipariş no veya e-posta" onkeydown="if(event.key==='Enter')loadOrders()">
+                <button class="btn btn-primary" onclick="loadOrders()">Yenile</button>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Sipariş No</th><th>Tarih</th><th>Müşteri</th><th>Tutar</th><th>Ödeme</th><th>Durum</th><th>İşlem</th></tr></thead>
+                    <tbody id="orders-list"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TICKETS SECTION -->
+        <div id="section-tickets" class="section">
+            <div style="margin-bottom: 20px;">
+                <select id="tickets-status-filter" onchange="loadTickets()">
+                    <option value="">Tümü</option>
+                    <option value="open" selected>Açık</option>
+                    <option value="in_progress">İşlemde</option>
+                    <option value="resolved">Çözüldü</option>
+                    <option value="closed">Kapalı</option>
+                </select>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Talep No</th><th>Tarih</th><th>Tür</th><th>Kişi</th><th>Sipariş</th><th>Detay</th><th>Durum</th></tr></thead>
+                    <tbody id="tickets-list"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- PRODUCTS SECTION -->
@@ -401,8 +453,21 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Görsel URL</label>
-                    <input type="url" id="product-image">
+                    <label>Stok kodu (SKU) — toplu içe aktarmada eşleştirme için</label>
+                    <input type="text" id="product-sku" maxlength="60" placeholder="ör. MSK-001">
+                </div>
+                <div class="form-group">
+                    <label>Görseller (her satıra bir https:// adresi — ilk satır ana görsel)</label>
+                    <textarea id="product-images" rows="3" placeholder="https://res.cloudinary.com/.../urun-on.jpg"></textarea>
+                    <input type="hidden" id="product-image">
+                    <div style="display:flex; gap:10px; align-items:center; margin-top:6px; flex-wrap:wrap;">
+                        <label class="btn btn-secondary" style="cursor:pointer; margin:0;">
+                            📷 Bilgisayardan yükle
+                            <input type="file" id="product-image-upload" accept="image/jpeg,image/png,image/webp" multiple hidden>
+                        </label>
+                        <small id="upload-status" style="color:#666">JPG/PNG/WebP, en fazla 10 MB · Önerilen: 1200×1200 px, beyaz/sade arka plan</small>
+                    </div>
+                    <div id="product-image-previews" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;"></div>
                 </div>
                 <div class="form-group">
                     <label>Video URL</label>
@@ -472,6 +537,40 @@
         </div>
     </div>
 
+    <!-- Order Modal -->
+    <div class="modal" id="order-modal">
+        <div class="modal-content">
+            <h2 id="order-modal-title">Sipariş</h2>
+            <div id="order-detail" style="margin-bottom:15px; font-size:0.9rem; line-height:1.6;"></div>
+            <form id="order-form">
+                <input type="hidden" id="order-id">
+                <div class="form-group">
+                    <label>Durum</label>
+                    <select id="order-status">
+                        <option value="pending_payment">Ödeme bekleniyor</option>
+                        <option value="paid">Ödeme alındı (havale onayı)</option>
+                        <option value="preparing">Hazırlanıyor</option>
+                        <option value="shipped">Kargoya verildi</option>
+                        <option value="delivered">Teslim edildi</option>
+                        <option value="refund_requested">İade talebi</option>
+                        <option value="refunded">İade edildi (stok geri eklenir)</option>
+                        <option value="cancelled">İptal (stok geri eklenir)</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Kargo firması</label><input type="text" id="order-carrier" placeholder="Yurtiçi, Aras, MNG..."></div>
+                <div class="form-group"><label>Takip numarası</label><input type="text" id="order-tracking"></div>
+                <div class="form-group"><label>Takip linki</label><input type="url" id="order-tracking-url"></div>
+                <div class="form-group"><label>Not (müşterinin durum geçmişinde görünür)</label><input type="text" id="order-note"></div>
+                <div class="form-group"><label>Yönetici notu (sadece siz)</label><textarea id="order-admin-note"></textarea></div>
+                <div class="form-group"><label><input type="checkbox" id="order-notify" checked> Müşteriye e-posta gönder</label></div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success">Kaydet</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('order-modal')">Kapat</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Brand Modal -->
     <div class="modal" id="brand-modal">
         <div class="modal-content">
@@ -499,9 +598,8 @@
     </div>
 
     <script>
-        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:10000'
-            : 'https://aqualora.shop';
+        // Panel, API ile aynı sunucudan servis edilir
+        const API_BASE = '';
 
         let products = [];
         let categories = [];
@@ -521,7 +619,168 @@
             if (tab === 'categories') loadCategories();
             if (tab === 'subcategories') loadSubCategories();
             if (tab === 'brands') loadBrands();
+            if (tab === 'orders') loadOrders();
+            if (tab === 'tickets') loadTickets();
+            if (tab === 'dashboard') loadDashboard();
         }
+
+        // ================== SİPARİŞ / DESTEK / ÖZET ==================
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const tl = (n) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(n || 0);
+        const STATUS_TR = { pending_payment: 'Ödeme bekleniyor', paid: 'Ödeme alındı', preparing: 'Hazırlanıyor', shipped: 'Kargoda', delivered: 'Teslim edildi', cancelled: 'İptal', payment_failed: 'Ödeme başarısız', refund_requested: 'İade talebi', refunded: 'İade edildi', pending: 'Bekliyor', failed: 'Başarısız' };
+        let orders = [];
+
+        async function loadOrders() {
+            const status = document.getElementById('orders-status-filter').value;
+            const q = document.getElementById('orders-search').value.trim();
+            const res = await fetchAPI(`/api/admin/orders?status=${encodeURIComponent(status)}&q=${encodeURIComponent(q)}`);
+            if (!res || !res.ok) return;
+            orders = await res.json();
+            document.getElementById('orders-list').innerHTML = orders.map(o => `
+                <tr>
+                    <td><b>${esc(o.orderNumber || o._id)}</b></td>
+                    <td>${new Date(o.createdAt).toLocaleString('tr-TR')}</td>
+                    <td>${esc(o.customer?.name || '')}<br><small>${esc(o.customer?.email || '')}<br>${esc(o.customer?.phone || '')}</small></td>
+                    <td>${tl(o.totalAmount)}</td>
+                    <td>${o.paymentMethod === 'bank_transfer' ? 'Havale' : 'Kart'}</td>
+                    <td>${esc(STATUS_TR[o.status] || o.status)}</td>
+                    <td><button class="btn btn-primary" onclick="openOrderModal('${esc(o._id)}')">Yönet</button></td>
+                </tr>`).join('') || '<tr><td colspan="7">Sipariş yok</td></tr>';
+        }
+
+        function openOrderModal(id) {
+            const o = orders.find(x => x._id === id);
+            if (!o) return;
+            const a = o.shippingAddress || {};
+            const b = o.billing || {};
+            document.getElementById('order-modal-title').textContent = `Sipariş ${o.orderNumber || ''}`;
+            document.getElementById('order-detail').innerHTML = `
+                <b>Ürünler</b><ul>${o.items.map(i => `<li>${esc(i.name)}${i.selectedVariant ? ' (' + esc(i.selectedVariant) + ')' : ''} × ${i.quantity} — ${tl(i.lineTotal ?? i.price * i.quantity)}</li>`).join('')}</ul>
+                Kargo: ${tl(o.shippingFee)} · <b>Toplam: ${tl(o.totalAmount)}</b><br>
+                <b>Teslimat:</b> ${esc(a.fullName)} · ${esc(a.phone)}<br>${esc(a.addressLine)} ${esc(a.district)}/${esc(a.city)} ${esc(a.zipCode)}<br>
+                <b>Fatura:</b> ${b.type === 'corporate' ? `${esc(b.companyName)} · VD: ${esc(b.taxOffice)} · VN: ${esc(b.taxNumber)}` : 'Bireysel'} ${b.identityNumber ? '· TCKN: ' + esc(b.identityNumber) : ''}<br>
+                ${o.customerNote ? `<b>Müşteri notu:</b> ${esc(o.customerNote)}<br>` : ''}
+                ${o.payment?.transactionId ? `<b>Ödeme ID:</b> ${esc(o.payment.transactionId)}<br>` : ''}
+                ${o.payment?.failureReason ? `<b>Hata:</b> ${esc(o.payment.failureReason)}<br>` : ''}
+                ${o.adminNote ? `<b style="color:#e63946">Uyarı/Not:</b> ${esc(o.adminNote)}<br>` : ''}
+                <b>Sözleşme onayı:</b> ${o.consents?.distanceSalesAcceptedAt ? new Date(o.consents.distanceSalesAcceptedAt).toLocaleString('tr-TR') + ' · IP ' + esc(o.consents.ip) : '-'}<br>
+                <b>Geçmiş:</b> ${(o.statusHistory || []).map(h => `${esc(STATUS_TR[h.status] || h.status)} (${new Date(h.at).toLocaleString('tr-TR')})`).join(' → ')}`;
+            document.getElementById('order-id').value = o._id;
+            document.getElementById('order-status').value = o.status;
+            document.getElementById('order-carrier').value = o.shipment?.carrier || '';
+            document.getElementById('order-tracking').value = o.shipment?.trackingNumber || '';
+            document.getElementById('order-tracking-url').value = o.shipment?.trackingUrl || '';
+            document.getElementById('order-note').value = '';
+            document.getElementById('order-admin-note').value = o.adminNote || '';
+            document.getElementById('order-modal').classList.add('active');
+        }
+
+        async function saveOrder(ev) {
+            ev.preventDefault();
+            const id = document.getElementById('order-id').value;
+            const res = await fetchAPI(`/api/admin/orders/${id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    status: document.getElementById('order-status').value,
+                    carrier: document.getElementById('order-carrier').value,
+                    trackingNumber: document.getElementById('order-tracking').value,
+                    trackingUrl: document.getElementById('order-tracking-url').value,
+                    note: document.getElementById('order-note').value,
+                    adminNote: document.getElementById('order-admin-note').value,
+                    notify: document.getElementById('order-notify').checked
+                })
+            });
+            if (res && res.ok) { showToast('Sipariş güncellendi', 'success'); closeModal('order-modal'); loadOrders(); }
+            else if (res) { const err = await res.json().catch(() => ({})); showToast(err.error || 'Hata', 'error'); }
+        }
+
+        const TICKET_TR = { return: 'İade', exchange: 'Değişim', live_support: 'Canlı destek', order_issue: 'Sipariş/iptal', other: 'Diğer' };
+        const TICKET_STATUS_TR = { open: 'Açık', in_progress: 'İşlemde', resolved: 'Çözüldü', closed: 'Kapalı' };
+        async function loadTickets() {
+            const status = document.getElementById('tickets-status-filter').value;
+            const res = await fetchAPI(`/api/admin/tickets?status=${encodeURIComponent(status)}`);
+            if (!res || !res.ok) return;
+            const tickets = await res.json();
+            document.getElementById('tickets-list').innerHTML = tickets.map(t => `
+                <tr>
+                    <td><b>${esc(t.ticketNumber)}</b></td>
+                    <td>${new Date(t.createdAt).toLocaleString('tr-TR')}</td>
+                    <td>${esc(TICKET_TR[t.type] || t.type)}</td>
+                    <td>${esc(t.name || '')}<br><small>${esc(t.email || '')} ${esc(t.phone || '')}</small></td>
+                    <td>${esc(t.orderNumber || '-')}</td>
+                    <td>${t.reason ? '<b>' + esc(t.reason) + '</b><br>' : ''}<small>${esc(t.message || '')}</small></td>
+                    <td><select onchange="updateTicket('${esc(t._id)}', this.value)">
+                        ${Object.keys(TICKET_STATUS_TR).map(s => `<option value="${s}" ${t.status === s ? 'selected' : ''}>${TICKET_STATUS_TR[s]}</option>`).join('')}
+                    </select></td>
+                </tr>`).join('') || '<tr><td colspan="7">Talep yok</td></tr>';
+        }
+        async function updateTicket(id, status) {
+            const res = await fetchAPI(`/api/admin/tickets/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+            if (res && res.ok) showToast('Talep güncellendi', 'success');
+        }
+
+        async function loadDashboard() {
+            const res = await fetchAPI('/api/admin/stats');
+            if (!res || !res.ok) return;
+            const s = await res.json();
+            const c = s.ordersByStatus || {};
+            const card = (title, value, sub = '') => `<div style="padding:15px;border:1px solid #ddd;border-radius:8px;background:#fff"><small>${title}</small><h2>${value}</h2><small>${sub}</small></div>`;
+            document.getElementById('dashboard-content').innerHTML = `
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px">
+                    ${card('Son 30 gün ciro', tl(s.last30Days.revenue), s.last30Days.orders + ' sipariş')}
+                    ${card('Hazırlanacak', (c.paid || 0) + (c.preparing || 0), 'ödendi + hazırlanıyor')}
+                    ${card('Ödeme bekleyen', c.pending_payment || 0, 'havale onayı bekliyor olabilir')}
+                    ${card('Açık destek talebi', s.openTickets)}
+                </div>
+                <h3>Stok uyarıları</h3>
+                <ul>${(s.lowStock || []).map(p => `<li>${esc(p.name)} — ${p.variants?.length ? p.variants.map(v => esc(v.size) + ': ' + v.stock).join(', ') : p.stock + ' adet'}</li>`).join('') || '<li>Uyarı yok</li>'}</ul>`;
+        }
+        document.getElementById('order-form')?.addEventListener('submit', saveOrder);
+
+        // ================== GÖRSEL YÜKLEME (Cloudinary) ==================
+        function renderImagePreviews() {
+            const urls = document.getElementById('product-images').value.split(/\s+/).filter(Boolean);
+            document.getElementById('product-image-previews').innerHTML = urls.map((u, i) =>
+                `<img src="${esc(u)}" alt="" title="${i === 0 ? 'Ana görsel' : ''}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:${i === 0 ? '2px solid #2a9d8f' : '1px solid #ddd'}">`).join('');
+        }
+        document.getElementById('product-images')?.addEventListener('input', renderImagePreviews);
+
+        document.getElementById('product-image-upload')?.addEventListener('change', async (ev) => {
+            const files = [...ev.target.files];
+            const status = document.getElementById('upload-status');
+            if (!files.length) return;
+            const sigRes = await fetchAPI('/api/admin/upload-signature');
+            if (!sigRes || !sigRes.ok) {
+                const err = sigRes ? await sigRes.json().catch(() => ({})) : {};
+                alert(err.error || 'Görsel yükleme yapılandırılmamış.');
+                return;
+            }
+            const sig = await sigRes.json();
+            const area = document.getElementById('product-images');
+            let done = 0;
+            for (const file of files) {
+                if (file.size > 10 * 1024 * 1024) { showToast(`${file.name} 10 MB'tan büyük`, 'error'); continue; }
+                status.textContent = `Yükleniyor ${done + 1}/${files.length}...`;
+                const fd = new FormData();
+                fd.append('file', file);
+                fd.append('api_key', sig.apiKey);
+                fd.append('timestamp', sig.timestamp);
+                fd.append('folder', sig.folder);
+                fd.append('signature', sig.signature);
+                try {
+                    const r = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`, { method: 'POST', body: fd });
+                    const data = await r.json();
+                    if (!r.ok) throw new Error(data.error?.message || 'Yükleme hatası');
+                    area.value = (area.value.trim() ? area.value.trim() + '\n' : '') + data.secure_url;
+                    done++;
+                } catch (e) { showToast(`${file.name}: ${e.message}`, 'error'); }
+            }
+            status.textContent = `${done} görsel yüklendi. Kaydetmeyi unutmayın.`;
+            ev.target.value = '';
+            renderImagePreviews();
+        });
+
 
         // --- Initial Load ---
         async function init() {
@@ -738,6 +997,9 @@
             document.getElementById('product-brandId').value = product?.brandId?._id || product?.brandId || '';
             document.getElementById('product-price').value = product?.price || '';
             document.getElementById('product-image').value = product?.image || '';
+            document.getElementById('product-sku').value = product?.sku || '';
+            document.getElementById('product-images').value = (product?.images?.length ? product.images : (product?.image ? [product.image] : [])).join('\n');
+            renderImagePreviews();
             document.getElementById('product-video').value = product?.video || '';
             document.getElementById('product-description').value = product?.description || '';
             document.getElementById('product-active').checked = product?.active !== false;
@@ -839,7 +1101,8 @@
                 name,
                 brandId: document.getElementById('product-brandId').value,
                 price,
-                image: document.getElementById('product-image').value,
+                images: document.getElementById('product-images').value.split(/\s+/).filter(Boolean),
+                sku: document.getElementById('product-sku').value.trim(),
                 video: document.getElementById('product-video').value,
                 description: document.getElementById('product-description').value,
                 active: document.getElementById('product-active').checked,

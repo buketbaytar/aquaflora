@@ -1,43 +1,35 @@
 import { ProductCard } from './ProductCard.js';
-import { products } from '../data/products.js';
 
-export function ProductList(items = products) {
-  const content = items.length > 0
-    ? items.map(product => ProductCard(product)).join('')
+export function ProductGrid(items = []) {
+  return items.length
+    ? `<div class="product-grid">${items.map(ProductCard).join('')}</div>`
     : '<div class="no-results">Aradığınız kriterlere uygun ürün bulunamadı.</div>';
+}
 
+export function ProductList(items = [], { title = 'Öne Çıkan <span class="highlight">Ekipmanlar</span>', showAll = true } = {}) {
   return `
     <section class="products-section container">
       <div class="section-header fade-in-up">
-        <h2 class="section-title">Öne Çıkan <span class="highlight">Ekipmanlar</span></h2>
-        <a href="#" class="view-all" id="view-all-products">Tümünü Gör →</a>
+        <h2 class="section-title">${title}</h2>
+        ${showAll ? '<a href="/urunler" class="view-all">Tümünü Gör →</a>' : ''}
       </div>
-      
-      <div class="product-grid">
-        ${content}
-      </div>
-    </section>
-  `;
+      ${ProductGrid(items)}
+    </section>`;
 }
 
-export function setupProductInteractions() {
-  const cards = document.querySelectorAll('.product-card');
-
-  cards.forEach(card => {
-    const video = card.querySelector('video');
-
-    // Video play optional - keeping logic but removing opacity hide
+/** Kartın üzerine gelince video önizleme (yalnızca fareli cihazlarda, video varsa) */
+export function setupProductInteractions(root = document) {
+  if (!window.matchMedia('(hover: hover)').matches) return;
+  root.querySelectorAll('.product-card').forEach(card => {
+    const video = card.querySelector('video[data-src]');
+    if (!video) return;
     card.addEventListener('mouseenter', () => {
-      // image.style.opacity = '0'; // REMOVED per task
-      if (video) video.play().catch(e => { });
+      if (!video.src) video.src = video.dataset.src;
+      video.play().catch(() => { });
     });
-
     card.addEventListener('mouseleave', () => {
-      // image.style.opacity = '1'; 
-      if (video) {
-        video.pause();
-        video.currentTime = 0;
-      }
+      video.pause();
+      video.currentTime = 0;
     });
   });
 }

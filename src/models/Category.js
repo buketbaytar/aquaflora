@@ -11,6 +11,7 @@ const categorySchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    order: { type: Number, default: 100 }, // Menüdeki sıra (küçük önce)
     createdAt: {
         type: Date,
         default: Date.now

@@ -1,39 +1,43 @@
+import { SITE } from '../config.js';
+
+/** İstemci tarafı gezinmede başlık/açıklama/canonical güncellemesi (ilk yükleme sunucuda yapılır) */
 export const seo = {
-    setDefaults: () => {
-        document.title = "DeepDive | Profesyonel Dalış ve Su Sporları Ekipmanları";
-        seo.updateMeta('description', "En kaliteli dalış malzemeleri, zıpkınlar ve outdoor ekipmanları. Profesyonellerin tercihi DeepDive ile derinlikleri keşfedin.");
-    },
+    set({ title, description, image, noindex = false, jsonLd = null } = {}) {
+        document.title = title ? `${title} | ${SITE.name}` : `${SITE.name} | ${SITE.tagline}`;
+        if (description) meta('name', 'description', description);
+        meta('property', 'og:title', document.title);
+        if (description) meta('property', 'og:description', description);
+        if (image) meta('property', 'og:image', image);
+        meta('property', 'og:url', location.href);
+        meta('name', 'robots', noindex ? 'noindex, nofollow' : 'index, follow');
 
-    update: (title, description, image) => {
-        document.title = `${title} | DeepDive`;
-        if (description) seo.updateMeta('description', description);
-        if (image) seo.updateMeta('og:image', image);
-    },
+        let canonical = document.querySelector('link[rel="canonical"]');
+        if (!canonical) {
+            canonical = document.createElement('link');
+            canonical.rel = 'canonical';
+            document.head.appendChild(canonical);
+        }
+        canonical.href = location.origin + location.pathname + (location.pathname === '/urunler' ? location.search : '');
 
-    updateMeta: (name, content) => {
-        let element = document.querySelector(`meta[name="${name}"]`) || document.querySelector(`meta[property="${name}"]`);
-
-        if (!element) {
-            element = document.createElement('meta');
-            if (name.startsWith('og:')) {
-                element.setAttribute('property', name);
-            } else {
-                element.setAttribute('name', name);
+        let ld = document.getElementById('json-ld');
+        if (jsonLd) {
+            if (!ld) {
+                ld = document.createElement('script');
+                ld.id = 'json-ld';
+                ld.type = 'application/ld+json';
+                document.head.appendChild(ld);
             }
-            document.head.appendChild(element);
-        }
-
-        element.setAttribute('content', content);
-    },
-
-    setJsonLd: (data) => {
-        let script = document.querySelector('#json-ld');
-        if (!script) {
-            script = document.createElement('script');
-            script.id = 'json-ld';
-            script.type = 'application/ld+json';
-            document.head.appendChild(script);
-        }
-        script.textContent = JSON.stringify(data);
+            ld.textContent = JSON.stringify(jsonLd);
+        } else if (ld) ld.remove();
     }
 };
+
+function meta(attr, key, content) {
+    let el = document.querySelector(`meta[${attr}="${key}"]`);
+    if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attr, key);
+        document.head.appendChild(el);
+    }
+    el.setAttribute('content', content);
+}

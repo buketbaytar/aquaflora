@@ -1,25 +1,17 @@
 import { defineConfig } from 'vite'
-import { resolve, dirname } from 'path'
-import { fileURLToPath } from 'url'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-
+// Geliştirme: `npm run dev` (Vite, :5173) + `npm run server` (Express, :3000).
+// /api istekleri Express'e yönlenir; tarayıcıdan bakıldığında aynı origin olduğu için çerez/CSRF sorunsuz çalışır.
 export default defineConfig({
     server: {
         proxy: {
-            '/api': {
-                target: process.env.VITE_API_BASE_URL || 'http://localhost:3000',
-                changeOrigin: true,
-                secure: false,
-            },
+            '/api': { target: process.env.API_PROXY_TARGET || 'http://localhost:3000', changeOrigin: false },
+            '/sitemap.xml': 'http://localhost:3000',
+            '/robots.txt': 'http://localhost:3000'
         },
     },
     build: {
-        rollupOptions: {
-            input: {
-                main: resolve(__dirname, 'index.html'),
-                urunler: resolve(__dirname, 'urunler.html'),
-            },
-        },
+        target: 'es2020',
+        sourcemap: false,
     },
 })

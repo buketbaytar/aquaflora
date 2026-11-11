@@ -1,39 +1,40 @@
-
+/**
+ * Yönetici hesabını oluşturur / şifresini sıfırlar.
+ * Kullanım:  ADMIN_EMAIL=... ADMIN_PASSWORD=... npm run admin:reset
+ * (veya değerleri .env dosyasına yazıp `npm run admin:reset`)
+ */
+import 'dotenv/config';
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import { User } from './src/models/User.js';
-import dotenv from 'dotenv';
 
-dotenv.config();
+const email = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+const password = process.env.ADMIN_PASSWORD || '';
 
-async function resetAdmin() {
-    if (!process.env.MONGODB_URI) {
-        console.log('No MONGODB_URI, skipping DB reset');
-        return;
-    }
-
-    try {
-        await mongoose.connect(process.env.MONGODB_URI);
-        console.log('Connected to DB');
-
-        const email = 'admin@aquaflora.com';
-        await User.deleteOne({ email });
-        console.log('Deleted existing admin');
-
-        const passwordHash = await bcrypt.hash('admin123', 10);
-        await User.create({
-            email,
-            passwordHash,
-            name: 'Admin User',
-            isAdmin: true
-        });
-        console.log('Created new admin: admin@aquaflora.com / admin123');
-
-        process.exit(0);
-    } catch (e) {
-        console.error('Error:', e);
-        process.exit(1);
-    }
+if (!process.env.MONGODB_URI) {
+    console.error('MONGODB_URI tanımlı değil.');
+    process.exit(1);
+}
+if (!email || password.length < 12) {
+    console.error('ADMIN_EMAIL ve en az 12 karakterli ADMIN_PASSWORD tanımlayın.');
+    process.exit(1);
 }
 
-resetAdmin();
+try {
+    await mongoose.connect(process.env.MONGODB_URI);
+    const passwordHash = await bcrypt.hash(password, 12);
+    await User.updateOne(
+        { email },
+        { $set: { passwordHash, isAdmin: true }, $setOnInsert: { email, name: 'Yönetici' } },
+        { upsert: true }
+    );
+    // Eski demo yöneticisini (bilinen şifreli) devre dışı bırak
+    const legacy = await User.updateOne({ email: 'admin@aquaflora.com', isAdmin: true }, { $set: { isAdmin: false } });
+    console.log(`✅ Yönetici hazır: ${email.replace(/^(.{2}).*(@.*)$/, '$1***$2')}`);
+    if (legacy.modifiedCount) console.log('🔒 Eski admin@aquaflora.com hesabının yönetici yetkisi kaldırıldı.');
+    await mongoose.disconnect();
+    process.exit(0);
+} catch (e) {
+    console.error('Hata:', e.message);
+    process.exit(1);
+}
